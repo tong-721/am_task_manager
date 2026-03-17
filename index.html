@@ -60,6 +60,12 @@
                     <input type="file" id="login-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleLoginFileUpload(this)">
                 </div>
             </div>
+            <div id="clear-all-area" class="mt-4 hidden">
+                <button onclick="clearAllTasksWarning()" class="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm">
+                    ⚠️ 清空所有任务
+                </button>
+                <p class="text-xs text-red-400 text-center mt-2">此操作将删除所有 AM 的任务数据，不可恢复</p>
+            </div>
         </div>
     </div>
 
@@ -92,49 +98,55 @@
                         <div class="text-right">
                             <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
                             <div class="text-xs text-gray-500">待办任务</div>
-                        </div>
-                        <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
-                    </div>
-                </div>
-            </div>
-        </header>
+
+
+
+                            </div>
+                            <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
+                            </div>
+                            </div>
+                            </div>
+                            </header>
+
 
         <main class="max-w-7xl mx-auto px-4 py-6">
-            <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-
-
-                <div class="flex flex-wrap items-center gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+            <div class="flex flex-wrap items-center gap-4">
                 <div class="flex-1 min-w-[300px]">
-                <div class="upload-area flex items-center gap-2 px-4 py-2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('file-input').click()">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                <span id="upload-text" class="text-sm text-gray-600">点击上传 Excel 文件</span>
-                <input type="file" id="file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(this)">
+                    <div class="upload-area flex items-center gap-2 px-4 py-2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('file-input').click()">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <span id="upload-text" class="text-sm text-gray-600">点击上传 Excel 文件</span>
+                        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(this)">
+                    </div>
                 </div>
+                <div class="w-32">
+                    <select id="sort-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="changeSortMode(this.value)">
+                        <option value="task">按任务分组</option>
+                        <option value="seller">按卖家分组</option>
+                    </select>
+                </div>
+                <div class="w-32">
+                    <select id="priority-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByPriority(this.value)">
+                        <option value="">全部优先级</option>
+                        <option value="P0">紧急</option>
+                        <option value="P1">重要</option>
+                        <option value="P2">普通</option>
+                    </select>
                 </div>
                 <div class="w-40">
-                <select id="priority-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByPriority(this.value)">
-                <option value="">全部优先级</option>
-                <option value="P0">紧急</option>
-                <option value="P1">重要</option>
-                <option value="P2">普通</option>
-                </select>
-                </div>
-                <div class="w-48">
-                <input type="text" id="search-input" placeholder="搜索任务或卖家..." 
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                oninput="filterBySearch(this.value)">
+                    <input type="text" id="search-input" placeholder="搜索任务或卖家..." 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        oninput="filterBySearch(this.value)">
                 </div>
                 <div class="flex gap-2">
-                <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
-                <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
+                    <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
+                    <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
                 </div>
-                </div>
-                </div>
-
-
-            <div class="bg-white rounded-xl shadow-sm mb-6">
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm mb-6">
             <div class="flex border-b">
                 <button id="tab-pending-btn" onclick="switchTab('pending')" class="tab-active px-6 py-3 font-medium text-sm flex items-center gap-2">
                     <span>待办任务</span>
@@ -146,8 +158,12 @@
                 </button>
             </div>
         </div>
-        <div id="task-container" class="space-y-4"></div>
-        <div id="empty-state" class="hidden text-center py-16">
+
+
+            <div id="task-container" class="space-y-4"></div>
+
+
+            <div id="empty-state" class="hidden text-center py-16">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -160,13 +176,13 @@
 </div>
 
 
-
     <script>
         var tasks = [];
         var currentTab = 'pending';
         var currentAM = '';
         var currentPriority = '';
         var searchQuery = '';
+        var sortMode = 'task';
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
         });
@@ -204,10 +220,12 @@
             ams.sort();
             var container = document.getElementById('am-buttons');
             var uploadArea = document.getElementById('login-upload-area');
+            var clearArea = document.getElementById('clear-all-area');
             
             if (ams.length === 0) {
                 container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
                 uploadArea.classList.remove('hidden');
+                clearArea.classList.add('hidden');
             } else {
                 var html = '';
                 for (var i = 0; i < ams.length; i++) {
@@ -218,6 +236,17 @@
                 }
                 container.innerHTML = html;
                 uploadArea.classList.remove('hidden');
+                clearArea.classList.remove('hidden');
+            }
+        }
+        function clearAllTasksWarning() {
+            if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
+                if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
+                    tasks = [];
+                    localStorage.removeItem('am_tasks');
+                    generateAMButtons();
+                    alert('所有任务已清空');
+                }
             }
         }
         function handleLoginFileUpload(input) {
@@ -239,35 +268,34 @@
             var textEl = isLoginPage ? null : document.getElementById('upload-text');
             if (textEl) textEl.textContent = '正在读取: ' + file.name;
             var reader = new FileReader();
+
+
             reader.onload = function(e) {
-                try {
-                    var data = new Uint8Array(e.target.result);
-                    var workbook = XLSX.read(data, { type: 'array' });
-                    var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                    
-                    importTasksFromRows(jsonData);
-                    alert('导入成功！');
-                    
-                    if (textEl) textEl.textContent = '点击上传 Excel 文件';
+            try {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
 
-
-                    if (isLoginPage) {
+                importTasksFromRows(jsonData);
+                alert('导入成功！');
+                
+                if (textEl) textEl.textContent = '点击上传 Excel 文件';
+                
+                if (isLoginPage) {
                     generateAMButtons();
-                    } else {
+                } else {
                     render();
-                    }
-                    } catch (err) {
-                    alert('导入失败：' + err.message);
-                    if (textEl) textEl.textContent = '点击上传 Excel 文件';
-                    }
-                    };
-                    reader.readAsArrayBuffer(file);
-                    }
-
-
-        function importTasksFromRows(rows) {
+                }
+            } catch (err) {
+                alert('导入失败：' + err.message);
+                if (textEl) textEl.textContent = '点击上传 Excel 文件';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    function importTasksFromRows(rows) {
         var now = Date.now();
         var existingKeys = {};
         
@@ -304,6 +332,10 @@
         }
         
         saveToStorage();
+    }
+    function changeSortMode(mode) {
+        sortMode = mode;
+        render();
     }
     function filterByPriority(priority) {
         currentPriority = priority;
@@ -347,8 +379,13 @@
         currentTab = tab;
         
         var pendingBtn = document.getElementById('tab-pending-btn');
+
+
+
         var completedBtn = document.getElementById('tab-completed-btn');
-        
+
+
+
         if (tab === 'pending') {
             pendingBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
             completedBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
@@ -359,63 +396,81 @@
         
         render();
     }
-
-
-        function render() {
-            updateStats();
-            
-            var filtered = [];
-            for (var i = 0; i < tasks.length; i++) {
-                var t = tasks[i];
-                if (t.am !== currentAM) continue;
-                if (currentPriority && t.priority !== currentPriority) continue;
-                if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
-                if (currentTab === 'pending' && t.completed) continue;
-                if (currentTab === 'completed' && !t.completed) continue;
-                filtered.push(t);
-            }
-            var container = document.getElementById('task-container');
-            var emptyState = document.getElementById('empty-state');
-            if (filtered.length === 0) {
-                container.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            emptyState.classList.add('hidden');
-            var html = '';
-            var grouped = {};
+    function render() {
+        updateStats();
+        
+        var filtered = [];
+        for (var i = 0; i < tasks.length; i++) {
+            var t = tasks[i];
+            if (t.am !== currentAM) continue;
+            if (currentPriority && t.priority !== currentPriority) continue;
+            if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
+            if (currentTab === 'pending' && t.completed) continue;
+            if (currentTab === 'completed' && !t.completed) continue;
+            filtered.push(t);
+        }
+        var container = document.getElementById('task-container');
+        var emptyState = document.getElementById('empty-state');
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        emptyState.classList.add('hidden');
+        var html = '';
+        var grouped = {};
+        
+        if (sortMode === 'task') {
             for (var i = 0; i < filtered.length; i++) {
                 var t = filtered[i];
                 var key = t.taskName;
                 if (!grouped[key]) grouped[key] = [];
                 grouped[key].push(t);
             }
-            for (var key in grouped) {
-                var groupTasks = grouped[key];
-                
-                var allTasksInGroup = [];
+        } else {
+            for (var i = 0; i < filtered.length; i++) {
+                var t = filtered[i];
+                var key = t.seller;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(t);
+            }
+        }
+        for (var key in grouped) {
+            var groupTasks = grouped[key];
+            var allTasksInGroup = [];
+            
+            if (sortMode === 'task') {
                 for (var i = 0; i < tasks.length; i++) {
                     if (tasks[i].am === currentAM && tasks[i].taskName === key) {
                         allTasksInGroup.push(tasks[i]);
                     }
                 }
-                
-                var completedCount = 0;
-                var p0Count = 0;
-                
-                for (var i = 0; i < allTasksInGroup.length; i++) {
-                    if (allTasksInGroup[i].completed) completedCount++;
-                    if (allTasksInGroup[i].priority === 'P0') p0Count++;
+            } else {
+                for (var i = 0; i < tasks.length; i++) {
+                    if (tasks[i].am === currentAM && tasks[i].seller === key) {
+                        allTasksInGroup.push(tasks[i]);
+                    }
                 }
-                
-                var progress = Math.round((completedCount / allTasksInGroup.length) * 100);
-                
-                html += '<div class="bg-white rounded-xl shadow-sm p-5 task-card fade-in">';
-                html += '<div class="flex items-center justify-between mb-4">';
-                html += '<div class="flex items-center gap-3">';
-                html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
-                if (p0Count > 0) {
-                    html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
+            }
+            
+            var completedCount = 0;
+            var p0Count = 0;
+            
+            for (var i = 0; i < allTasksInGroup.length; i++) {
+                if (allTasksInGroup[i].completed) completedCount++;
+                if (allTasksInGroup[i].priority === 'P0') p0Count++;
+            }
+            
+            var progress = Math.round((completedCount / allTasksInGroup.length) * 100);
+            
+            html += '<div class="bg-white rounded-xl shadow-sm p-5 task-card fade-in">';
+            html += '<div class="flex items-center justify-between mb-4">';
+            html += '<div class="flex items-center gap-3">';
+            html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
+            if (p0Count > 0) {
+
+
+                html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
                 }
                 html += '</div>';
                 html += '<div class="flex items-center gap-2">';
@@ -426,34 +481,36 @@
                 html += '</div>';
                 html += '</div>';
                 html += '<div class="space-y-2">';
-                
-                for (var i = 0; i < groupTasks.length; i++) {
-                    var t = groupTasks[i];
-                    html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
-                    html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
-                    html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
-                    html += '</div>';
+
+
+            for (var i = 0; i < groupTasks.length; i++) {
+                var t = groupTasks[i];
+                html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
+                html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
+                html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
+                html += '</div>';
+                if (sortMode === 'task') {
                     html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
-
-
-                    html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
-                    html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
-                    html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
-                    if (currentTab === 'pending') {
+                } else {
+                    html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
+                }
+                html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
+                html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
+                html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
+                if (currentTab === 'pending') {
                     html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
                     html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
                     html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
                     html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
                     html += '</select>';
-                    } else {
+                } else {
                     var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
                     html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
-                    }
-                    html += '</div>';
-                    }
-
-
+                }
                 html += '</div>';
+            }
+            
+            html += '</div>';
             html += '</div>';
         }
         container.innerHTML = html;
@@ -475,11 +532,15 @@
         document.getElementById('stats-completed').textContent = completed + '/' + total;
         document.getElementById('progress-text').textContent = rate + '%';
         document.getElementById('progress-circle').style.strokeDashoffset = 100 - rate;
-        
+
+
+
         document.getElementById('badge-pending').textContent = pending;
         document.getElementById('badge-completed').textContent = completed;
-    }
-    function exportData() {
+        }
+
+
+        function exportData() {
         var amTasks = [];
         for (var i = 0; i < tasks.length; i++) {
             if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
@@ -511,18 +572,14 @@
         if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
             var newTasks = [];
             for (var i = 0; i < tasks.length; i++) {
-
-
                 if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
-                }
-                tasks = newTasks;
-                saveToStorage();
-                render();
-                }
-                }
-
-
-        function saveToStorage() {
+            }
+            tasks = newTasks;
+            saveToStorage();
+            render();
+        }
+    }
+    function saveToStorage() {
         localStorage.setItem('am_tasks', JSON.stringify(tasks));
     }
     function loadFromStorage() {
