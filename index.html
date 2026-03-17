@@ -36,128 +36,201 @@
         .tab-inactive:hover { color: #334155; }
         .upload-area { cursor: pointer; transition: all 0.2s; }
         .upload-area:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .login-card { animation: fadeIn 0.5s ease; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen">
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">AM</div>
-                    <div>
-                        <h1 class="text-xl font-bold text-gray-900">客户经理任务管理</h1>
-                        <p class="text-sm text-gray-500">Account Manager Task System</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-6">
-                    <div class="flex items-center gap-2">
-                        <div class="w-12 h-12 relative">
-                            <svg class="progress-ring w-12 h-12" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" r="16" fill="none" stroke="#e2e8f0" stroke-width="3"/>
-                                <circle id="progress-circle" cx="18" cy="18" r="16" fill="none" stroke="#3b82f6" stroke-width="3"
-                                    stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
-                            </svg>
-                            <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">0%</span>
-                        </div>
-                        <div class="text-sm">
-                            <div class="text-gray-500">完成率</div>
 
-                            <div id="stats-completed" class="font-semibold text-gray-900">0/0</div>
+
+    <div id="login-page" class="min-h-screen flex items-center justify-center">
+        <div class="login-card bg-white rounded-2xl shadow-lg p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">AM</div>
+                <h1 class="text-2xl font-bold text-gray-900">客户经理任务管理</h1>
+                <p class="text-gray-500 mt-2">请选择您的身份</p>
+            </div>
+            <div id="am-buttons" class="space-y-3"></div>
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-400">选择后只能看到自己的任务</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden">
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">AM</div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">客户经理任务管理</h1>
+                            <p class="text-sm text-gray-500">当前用户: <span id="current-user-name"></span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-12 h-12 relative">
+                                <svg class="progress-ring w-12 h-12" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="16" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+                                    <circle id="progress-circle" cx="18" cy="18" r="16" fill="none" stroke="#3b82f6" stroke-width="3"
+                                        stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
+                                </svg>
+                                <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">0%</span>
                             </div>
+                            <div class="text-sm">
+                                <div class="text-gray-500">完成率</div>
+                                <div id="stats-completed" class="font-semibold text-gray-900">0/0</div>
                             </div>
-                            <div class="text-right">
+                        </div>
+                        <div class="text-right">
                             <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
                             <div class="text-xs text-gray-500">待办任务</div>
-                            </div>
-                            </div>
-                            </div>
-                            </div>
-                            </header>
-    in class="max-w-7xl mx-auto px-4 py-6">
-    <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <div class="flex flex-wrap items-center gap-4">
-            <div class="flex-1 min-w-[300px]">
-                <div class="upload-area flex items-center gap-2 px-4 py-2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('file-input').click()">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                    </svg>
-                    <span id="upload-text" class="text-sm text-gray-600">点击上传 Excel 文件</span>
-                    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(this)">
+                        </div>
+                        <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
+                    </div>
                 </div>
             </div>
-            <div class="w-48">
-                <select id="am-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByAM(this.value)">
-                    <option value="">全部 AM</option>
-                </select>
-            </div>
-            <div class="w-40">
-                <select id="priority-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByPriority(this.value)">
-                    <option value="">全部优先级</option>
-                    <option value="P0">P0 - 紧急</option>
-                    <option value="P1">P1 - 重要</option>
-                    <option value="P2">P2 - 普通</option>
-                </select>
-            </div>
-            <div class="w-48">
-                <input type="text" id="search-input" placeholder="搜索任务或卖家..." 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    oninput="filterBySearch(this.value)">
-            </div>
-            <div class="flex gap-2">
-                <button onclick="loadDemoData()" class="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">加载示例</button>
-                <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
-                <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
-            </div>
-        </div>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm mb-6">
-        <div class="flex border-b">
-            <button id="tab-pending-btn" onclick="switchTab('pending')" class="tab-active px-6 py-3 font-medium text-sm flex items-center gap-2">
-                <span>待办任务</span>
-                <span id="badge-pending" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">0</span>
-            </button>
-            <button id="tab-completed-btn" onclick="switchTab('completed')" class="tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2">
-                <span>已完成</span>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6">
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex-1 min-w-[300px]">
+                        <div class="upload-area flex items-center gap-2 px-4 py-2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('file-input').click()">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
 
 
-                <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                            <span id="upload-text" class="text-sm text-gray-600">点击上传 Excel 文件</span>
+                            <input type="file" id="file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(this)">
+                            </div>
+                            </div>
+                            <div class="w-40">
+                            <select id="priority-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByPriority(this.value)">
+                            <option value="">全部优先级</option>
+                            <option value="P0">P0 - 紧急</option>
+                            <option value="P1">P1 - 重要</option>
+                            <option value="P2">P2 - 普通</option>
+                            </select>
+                            </div>
+                            <div class="w-48">
+                            <input type="text" id="search-input" placeholder="搜索任务或卖家..." 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            oninput="filterBySearch(this.value)">
+                            </div>
+                            <div class="flex gap-2">
+                            <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
+                            <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
+                            </div>
+                            </div>
+                            </div>
+
+
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+            <div class="flex border-b">
+                <button id="tab-pending-btn" onclick="switchTab('pending')" class="tab-active px-6 py-3 font-medium text-sm flex items-center gap-2">
+                    <span>待办任务</span>
+                    <span id="badge-pending" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">0</span>
                 </button>
-                </div>
-                </div>
-
-
-        <div id="task-container" class="space-y-4"></div>
-    <div id="empty-state" class="hidden text-center py-16">
-        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
+                <button id="tab-completed-btn" onclick="switchTab('completed')" class="tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2">
+                    <span>已完成</span>
+                    <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                </button>
+            </div>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-1">暂无任务</h3>
-        <p class="text-gray-500">上传 Excel 文件或点击"加载示例"开始使用</p>
-    </div>
-</main>
+        <div id="task-container" class="space-y-4"></div>
+        <div id="empty-state" class="hidden text-center py-16">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-1">暂无任务</h3>
+            <p class="text-gray-500">上传 Excel 文件开始使用</p>
+        </div>
+    </main>
+</div>
 
 
-        <script>
+    <script>
         var tasks = [];
         var currentTab = 'pending';
         var currentAM = '';
         var currentPriority = '';
         var searchQuery = '';
+        var allAMs = [];
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('页面加载完成');
+            checkLoginStatus();
+        });
+        function checkLoginStatus() {
+            var savedAM = localStorage.getItem('current_am');
+            if (savedAM) {
+                currentAM = savedAM;
+                showMainApp();
+            } else {
+                showLoginPage();
+            }
+        }
+        function showLoginPage() {
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            generateAMButtons();
+        }
+        function showMainApp() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('current-user-name').textContent = currentAM;
             loadFromStorage();
             render();
-        });
-        function handleFileUpload(input) {
-            console.log('文件上传触发');
-            var file = input.files[0];
-            if (!file) {
-                console.log('没有选择文件');
-                return;
+        }
+        function generateAMButtons() {
+            loadFromStorage();
+            var ams = [];
+            var amSet = {};
+            for (var i = 0; i < tasks.length; i++) {
+                if (!amSet[tasks[i].am]) {
+                    amSet[tasks[i].am] = true;
+                    ams.push(tasks[i].am);
+                }
             }
-            console.log('选择的文件:', file.name);
+            ams.sort();
+            allAMs = ams;
+            var container = document.getElementById('am-buttons');
+            if (ams.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>' +
+                    '<button onclick="continueWithoutData()" class="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">' +
+                    '继续（之后导入）</button>';
+            } else {
+                var html = '';
+                for (var i = 0; i < ams.length; i++) {
+                    html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
+                    html += '<span>' + ams[i] + '</span>';
+                    html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+                    html += '</button>';
+                }
+                container.innerHTML = html;
+            }
+        }
+        function continueWithoutData() {
+            currentAM = 'Temp';
+            localStorage.setItem('current_am', currentAM);
+            showMainApp();
+        }
+        function loginAs(am) {
+            currentAM = am;
+            localStorage.setItem('current_am', am);
+            showMainApp();
+        }
+        function logout() {
+            currentAM = '';
+            localStorage.removeItem('current_am');
+            showLoginPage();
+        }
+        function handleFileUpload(input) {
+            var file = input.files[0];
+            if (!file) return;
             document.getElementById('upload-text').textContent = '正在读取: ' + file.name;
             var reader = new FileReader();
             reader.onload = function(e) {
@@ -165,94 +238,60 @@
                     var data = new Uint8Array(e.target.result);
                     var workbook = XLSX.read(data, { type: 'array' });
                     var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                     
-                    console.log('读取到数据:', jsonData.length, '行');
-                    importTasks(jsonData);
-                    alert('导入成功！共 ' + jsonData.length + ' 条记录');
-                    document.getElementById('upload-text').textContent = '点击上传 Excel 文件';
-                } catch (err) {
-                    console.error('导入失败:', err);
-                    alert('导入失败：' + err.message);
-                    document.getElementById('upload-text').textContent = '点击上传 Excel 文件';
-                }
-            };
-            reader.onerror = function(err) {
-                console.error('文件读取错误:', err);
-                alert('文件读取失败');
+                    importTasksFromRows(jsonData);
+                    alert('导入成功！');
+
+
                 document.getElementById('upload-text').textContent = '点击上传 Excel 文件';
-            };
-            reader.readAsArrayBuffer(file);
+                render();
+                } catch (err) {
+                alert('导入失败：' + err.message);
+                document.getElementById('upload-text').textContent = '点击上传 Excel 文件';
+                }
+                };
+                reader.readAsArrayBuffer(file);
+                }
+
+
+        function importTasksFromRows(rows) {
+        var now = Date.now();
+        var existingKeys = {};
+        
+        for (var i = 0; i < tasks.length; i++) {
+            var key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
+            existingKeys[key] = true;
         }
-        function importTasks(data) {
-            var now = Date.now();
-            var count = 0;
+        
+        for (var i = 1; i < rows.length; i++) {
+            var row = rows[i];
+            if (!row || row.length < 3) continue;
             
-            for (var i = 0; i < data.length; i++) {
-                var row = data[i];
-                var keys = Object.keys(row);
-                
-                var seller = row['卖家'] || row['卖家（客户）名称'] || row['seller'] || row['客户'] || row[keys[0]];
-                var am = row['AM'] || row['客户经理'] || row['am'] || row[keys[1]];
-                var taskName = row['task'] || row['任务'] || row['Task'] || row[keys[2]];
-                
-                if (seller && am && taskName) {
+            var seller = String(row[0] || '').trim();
+            var am = String(row[1] || '').trim();
+            var taskName = String(row[2] || '').trim();
+            
+            if (seller && am && taskName) {
+                var key = seller + '|' + am + '|' + taskName;
+                if (!existingKeys[key]) {
                     tasks.push({
                         id: 'task_' + now + '_' + i,
-                        seller: String(seller).trim(),
-                        am: String(am).trim(),
-                        taskName: String(taskName).trim(),
+                        seller: seller,
+                        am: am,
+                        taskName: taskName,
                         priority: 'P2',
                         completed: false,
                         completedAt: null,
                         createdAt: now,
                         note: ''
                     });
-                    count++;
+                    existingKeys[key] = true;
                 }
             }
-            
-            console.log('成功导入', count, '条任务');
-            saveToStorage();
-            updateAMFilter();
-            render();
         }
-        function loadDemoData() {
-            var demoData = [
-                { '卖家': 'A', 'AM': 'Wenhui', 'task': 'workshop' },
-                { '卖家': 'B', 'AM': 'Wenhui', 'task': 'ads training' },
-                { '卖家': 'C', 'AM': 'Vivian', 'task': 'policy training' },
-                { '卖家': 'D', 'AM': 'Vivian', 'task': 'policy training' },
-                { '卖家': 'E', 'AM': 'Wenhui', 'task': 'workshop' },
-                { '卖家': 'F', 'AM': 'Vivian', 'task': 'ads training' },
-                { '卖家': 'G', 'AM': 'Topher', 'task': 'policy training' },
-                { '卖家': 'H', 'AM': 'Topher', 'task': 'workshop' }
-            ];
-            importTasks(demoData);
-        }
-        function updateAMFilter() {
-            var ams = [];
-            var amSet = {};
-
-
-            for (var i = 0; i < tasks.length; i++) {
-            if (!amSet[tasks[i].am]) {
-            amSet[tasks[i].am] = true;
-            ams.push(tasks[i].am);
-            }
-            }
-            ams.sort();
-
-
-                    var select = document.getElementById('am-filter');
-        select.innerHTML = '<option value="">全部 AM</option>';
-        for (var i = 0; i < ams.length; i++) {
-            select.innerHTML += '<option value="' + ams[i] + '">' + ams[i] + '</option>';
-        }
-    }
-    function filterByAM(am) {
-        currentAM = am;
-        render();
+        
+        saveToStorage();
     }
     function filterByPriority(priority) {
         currentPriority = priority;
@@ -310,13 +349,13 @@
     }
 
 
-                    function render() {
+        function render() {
             updateStats();
             
             var filtered = [];
             for (var i = 0; i < tasks.length; i++) {
                 var t = tasks[i];
-                if (currentAM && t.am !== currentAM) continue;
+                if (t.am !== currentAM) continue;
                 if (currentPriority && t.priority !== currentPriority) continue;
                 if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
                 if (currentTab === 'pending' && t.completed) continue;
@@ -332,132 +371,86 @@
             }
             emptyState.classList.add('hidden');
             var html = '';
-            
-            if (currentTab === 'pending') {
-                var grouped = {};
-                for (var i = 0; i < filtered.length; i++) {
-                    var t = filtered[i];
-                    var key = t.am + ' - ' + t.taskName;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(t);
-                }
-                for (var key in grouped) {
-                    var groupTasks = grouped[key];
-                    var completedCount = 0;
-                    var p0Count = 0;
-                    
-                    for (var i = 0; i < groupTasks.length; i++) {
-                        if (groupTasks[i].completed) completedCount++;
-                        if (groupTasks[i].priority === 'P0') p0Count++;
-                    }
-                    
-                    var progress = Math.round((completedCount / groupTasks.length) * 100);
-                    
-                    html += '<div class="bg-white rounded-xl shadow-sm p-5 task-card fade-in">';
-                    html += '<div class="flex items-center justify-between mb-4">';
-                    html += '<div class="flex items-center gap-3">';
-                    html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
-                    if (p0Count > 0) {
-                        html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
-                    }
-                    html += '</div>';
-                    html += '<div class="flex items-center gap-2">';
-                    html += '<span class="text-sm text-gray-500">' + completedCount + '/' + groupTasks.length + '</span>';
-                    html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
-                    html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
-                    html += '</div>';
-                    html += '</div>';
-                    html += '</div>';
-                    html += '<div class="space-y-2">';
-                    
-                    for (var i = 0; i < groupTasks.length; i++) {
-                        var t = groupTasks[i];
-                        html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
-                        html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
-                        html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
-                        html += '</div>';
-                        html += '<div class="flex-1">';
-                        html += '<div class="font-medium text-gray-900">' + t.seller + '</div>';
-                        html += '</div>';
-
-
-                        html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="text-xs px-2 py-1 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
-                        html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>P0</option>';
-                        html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>P1</option>';
-                        html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>P2</option>';
-                        html += '</select>';
-                        html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
-                        html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
-                        html += 'class="w-40 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400">';
-                        html += '</div>';
-                        }
-
-
-                                    html += '</div>';
-                html += '</div>';
-            }
-        } else {
             var grouped = {};
             for (var i = 0; i < filtered.length; i++) {
                 var t = filtered[i];
-                var date = new Date(t.completedAt).toLocaleDateString('zh-CN');
-                if (!grouped[date]) grouped[date] = [];
-                grouped[date].push(t);
+                var key = t.am + ' - ' + t.taskName;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(t);
             }
-            var dates = Object.keys(grouped).sort(function(a, b) {
-                return new Date(b) - new Date(a);
-            });
-            for (var d = 0; d < dates.length; d++) {
-                var date = dates[d];
-                var dateTasks = grouped[date];
+            for (var key in grouped) {
+                var groupTasks = grouped[key];
+                var completedCount = 0;
+                var p0Count = 0;
+                
+                for (var i = 0; i < groupTasks.length; i++) {
+                    if (groupTasks[i].completed) completedCount++;
+                    if (groupTasks[i].priority === 'P0') p0Count++;
+                }
+                
+                var progress = Math.round((completedCount / groupTasks.length) * 100);
                 
                 html += '<div class="bg-white rounded-xl shadow-sm p-5 task-card fade-in">';
-                html += '<div class="flex items-center gap-2 mb-4">';
-                html += '<div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">';
-                html += '<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
-                html += '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
-                html += '</svg>';
+                html += '<div class="flex items-center justify-between mb-4">';
+                html += '<div class="flex items-center gap-3">';
+                html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
+                if (p0Count > 0) {
+                    html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
+                }
                 html += '</div>';
-                html += '<h3 class="text-lg font-semibold text-gray-900">' + date + '</h3>';
-                html += '<span class="text-sm text-gray-500">完成 ' + dateTasks.length + ' 项</span>';
+                html += '<div class="flex items-center gap-2">';
+                html += '<span class="text-sm text-gray-500 font-medium">' + completedCount + '/' + groupTasks.length + '</span>';
+                html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
+                html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
+                html += '</div>';
+                html += '</div>';
                 html += '</div>';
                 html += '<div class="space-y-2">';
                 
-                for (var i = 0; i < dateTasks.length; i++) {
-                    var t = dateTasks[i];
-                    html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">';
+                for (var i = 0; i < groupTasks.length; i++) {
+                    var t = groupTasks[i];
+                    html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
                     html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
-                    html += '<div class="custom-checkbox checked"></div>';
+                    html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
                     html += '</div>';
-                    html += '<div class="flex-1">';
-                    html += '<div class="font-medium text-gray-900 line-through text-gray-500">' + t.seller + '</div>';
-                    html += '<div class="text-sm text-gray-400">' + t.am + ' · ' + t.taskName + '</div>';
-                    html += '</div>';
-                    if (t.note) {
-                        html += '<span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">' + t.note + '</span>';
-                    }
-                    html += '</div>';
+                    html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
+                    html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
+                    html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
+                    html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
+
+
+                if (currentTab === 'pending') {
+                html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
+                html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>P0</option>';
+                html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>P1</option>';
+                html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>P2</option>';
+                html += '</select>';
+                } else {
+                html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + t.priority + '</span>';
                 }
-                
                 html += '</div>';
-                html += '</div>';
-            }
+                }
+
+
+            html += '</div>';
+            html += '</div>';
         }
         container.innerHTML = html;
     }
     function updateStats() {
-        var total = tasks.length;
-        var completed = 0;
-
-
+        var amTasks = [];
         for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].completed) completed++;
+            if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
+        }
+        
+        var total = amTasks.length;
+        var completed = 0;
+        for (var i = 0; i < amTasks.length; i++) {
+            if (amTasks[i].completed) completed++;
         }
         var pending = total - completed;
         var rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-
-                document.getElementById('stats-pending').textContent = pending;
+        document.getElementById('stats-pending').textContent = pending;
         document.getElementById('stats-completed').textContent = completed + '/' + total;
         document.getElementById('progress-text').textContent = rate + '%';
         document.getElementById('progress-circle').style.strokeDashoffset = 100 - rate;
@@ -466,13 +459,18 @@
         document.getElementById('badge-completed').textContent = completed;
     }
     function exportData() {
-        if (tasks.length === 0) {
+        var amTasks = [];
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
+        }
+        
+        if (amTasks.length === 0) {
             alert('没有数据可导出');
             return;
         }
         var data = [];
-        for (var i = 0; i < tasks.length; i++) {
-            var t = tasks[i];
+        for (var i = 0; i < amTasks.length; i++) {
+            var t = amTasks[i];
             data.push({
                 '卖家': t.seller,
                 'AM': t.am,
@@ -486,13 +484,16 @@
         var ws = XLSX.utils.json_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '任务列表');
-        XLSX.writeFile(wb, 'AM任务列表_' + new Date().toLocaleDateString('zh-CN') + '.xlsx');
+        XLSX.writeFile(wb, 'AM任务列表_' + currentAM + '_' + new Date().toLocaleDateString('zh-CN') + '.xlsx');
     }
     function clearAllData() {
-        if (confirm('确定要清空所有数据吗？此操作不可恢复。')) {
-            tasks = [];
+        if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
+            var newTasks = [];
+            for (var i = 0; i < tasks.length; i++) {
+                if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
+            }
+            tasks = newTasks;
             saveToStorage();
-            updateAMFilter();
             render();
         }
     }
@@ -503,7 +504,6 @@
         var stored = localStorage.getItem('am_tasks');
         if (stored) {
             tasks = JSON.parse(stored);
-            updateAMFilter();
         }
     }
 </script>
