@@ -103,7 +103,6 @@
                             <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
 
 
-
                             <div class="text-xs text-gray-500">待办任务</div>
                             </div>
                             <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
@@ -113,7 +112,7 @@
                             </header>
 
 
-        class="max-w-7xl mx-auto px-4 py-6">
+        <main class="max-w-7xl mx-auto px-4 py-6">
         <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
             <div class="flex flex-wrap items-center gap-4">
                 <div class="flex-1 min-w-[300px]">
@@ -161,13 +160,12 @@
                     <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
 
 
-
                     </button>
                     </div>
                     </div>
 
 
-        <div id="task-container" class="space-y-4"></div>
+            <div id="task-container" class="space-y-4"></div>
         <div id="empty-state" class="hidden text-center py-16">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +180,7 @@
 
 
     <script>
-        // Supabase 配置
+        // Supabase 配置 - 自动同步，无需用户输入
         var supabaseUrl = 'https://irvytycvwmdirtnrqtmq.supabase.co';
         var supabaseKey = 'sb_publishable_cfCHg0giX-Rh9XItueuQ2g_bmNymsPl';
         var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -207,20 +205,10 @@
         function showLoginPage() {
             document.getElementById('login-page').classList.remove('hidden');
             document.getElementById('main-app').classList.add('hidden');
-            generateAMButtons();
+            loadFromSupabaseSilent();
         }
-        async function showMainApp() {
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('current-user-name').textContent = currentAM;
-            await loadFromSupabase();
-            render();
-            document.getElementById('sync-status').classList.remove('hidden');
-            updateSyncStatus('已同步', 'online');
-        }
-        async function loadFromSupabase() {
+        async function loadFromSupabaseSilent() {
             try {
-                updateSyncStatus('同步中...', 'syncing');
                 var { data, error } = await supabase.from('tasks').select('*');
                 if (error) throw error;
                 if (data && data.length > 0) {
@@ -236,18 +224,26 @@
                             createdAt: row.created_at
                         };
                     });
+                    saveToStorage();
                 }
-                updateSyncStatus('已同步', 'online');
+                generateAMButtons();
             } catch (err) {
-                console.error('Supabase error:', err);
                 loadFromStorage();
-                updateSyncStatus('离线模式', 'offline');
+                generateAMButtons();
             }
+        }
+        async function showMainApp() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('current-user-name').textContent = currentAM;
+            await loadFromSupabaseSilent();
+            render();
+            document.getElementById('sync-status').classList.remove('hidden');
+            updateSyncStatus('已同步', 'online');
         }
         async function saveToSupabase() {
             try {
                 updateSyncStatus('同步中...', 'syncing');
-                // 先清空再插入（简单方案）
                 await supabase.from('tasks').delete().neq('id', '');
                 for (var i = 0; i < tasks.length; i++) {
                     var t = tasks[i];
@@ -274,20 +270,21 @@
             el.className = 'sync-status sync-' + type;
         }
         function generateAMButtons() {
+            loadFromStorage();
             var ams = [];
             var amSet = {};
-
-
             for (var i = 0; i < tasks.length; i++) {
-            if (!amSet[tasks[i].am]) {
-            amSet[tasks[i].am] = true;
-            ams.push(tasks[i].am);
-            }
-            }
-            ams.sort();
+                if (!amSet[tasks[i].am]) {
 
 
-            var container = document.getElementById('am-buttons');
+                amSet[tasks[i].am] = true;
+ams.push(tasks[i].am);
+}
+}
+ams.sort();
+
+
+        var container = document.getElementById('am-buttons');
         var uploadArea = document.getElementById('login-upload-area');
         var clearArea = document.getElementById('clear-all-area');
         
@@ -369,18 +366,17 @@
         var existingKeys = {};
         
         for (var i = 0; i < tasks.length; i++) {
-
-
             var key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
-existingKeys[key] = true;
-}
+            existingKeys[key] = true;
+        }
 
 
         for (var i = 1; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || row.length < 3) continue;
-            
-            var seller = String(row[0] || '').trim();
+var row = rows[i];
+if (!row || row.length < 3) continue;
+
+
+        var seller = String(row[0] || '').trim();
             var am = String(row[1] || '').trim();
             var taskName = String(row[2] || '').trim();
             
@@ -394,7 +390,6 @@ existingKeys[key] = true;
                         taskName: taskName,
                         priority: 'P2',
                         completed: false,
-                        completedAt: null,
                         createdAt: new Date().toISOString(),
                         note: ''
                     });
@@ -475,15 +470,15 @@ existingKeys[key] = true;
             if (currentPriority && t.priority !== currentPriority) continue;
             if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
             if (currentTab === 'pending' && t.completed) continue;
-
-
             if (currentTab === 'completed' && !t.completed) continue;
-filtered.push(t);
-}
-
-
+            filtered.push(t);
+        }
         var container = document.getElementById('task-container');
+
+
         var emptyState = document.getElementById('empty-state');
+
+
         if (filtered.length === 0) {
             container.innerHTML = '';
             emptyState.classList.remove('hidden');
@@ -560,11 +555,11 @@ filtered.push(t);
                 html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
                 html += '</div>';
                 if (sortMode === 'task') {
-
-
                     html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
-} else {
-html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
+                } else {
+
+
+                html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
 }
 html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
 html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
@@ -583,7 +578,7 @@ html += '</div>';
 }
 
 
-            html += '</div>';
+        html += '</div>';
             html += '</div>';
         }
         container.innerHTML = html;
@@ -637,12 +632,12 @@ html += '</div>';
         XLSX.writeFile(wb, 'AM任务列表_' + currentAM + '_' + new Date().toLocaleDateString('zh-CN') + '.xlsx');
     }
     function clearAllData() {
-
-
         if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
-var newTasks = [];
-for (var i = 0; i < tasks.length; i++) {
-if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
+            var newTasks = [];
+            for (var i = 0; i < tasks.length; i++) {
+
+
+            if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
 }
 tasks = newTasks;
 saveToStorage();
