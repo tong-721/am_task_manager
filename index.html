@@ -6,6 +6,7 @@
     <title>客户经理任务管理系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #f8fafc; }
@@ -41,6 +42,7 @@
         .sync-status { font-size: 11px; padding: 2px 8px; border-radius: 12px; }
         .sync-online { background: #dcfce7; color: #16a34a; }
         .sync-offline { background: #f3f4f6; color: #6b7280; }
+        .sync-syncing { background: #dbeafe; color: #2563eb; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -67,16 +69,6 @@
                 <button onclick="clearAllTasksWarning()" class="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm">⚠️ 清空所有任务</button>
                 <p class="text-xs text-red-400 text-center mt-2">此操作将删除所有 AM 的任务数据，不可恢复</p>
             </div>
-            <div id="team-code-section" class="mt-6 pt-6 border-t border-gray-200">
-                <label class="block text-sm font-medium text-gray-700 mb-2">团队同步码</label>
-                <div class="flex gap-2">
-                    <input type="text" id="team-code-input" value="team-tiger" placeholder="team-tiger" 
-                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button onclick="connectTeam()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">连接</button>
-                </div>
-                <p id="team-code-display" class="mt-2 text-sm text-blue-600 font-medium hidden"></p>
-                <p class="mt-1 text-xs text-gray-400">团队码：team-tiger（其他设备输入相同码即可同步）</p>
-            </div>
         </div>
     </div>
 
@@ -97,30 +89,31 @@
                             <div class="w-12 h-12 relative">
                                 <svg class="progress-ring w-12 h-12" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="16" fill="none" stroke="#e2e8f0" stroke-width="3"/>
-
-
                                     <circle id="progress-circle" cx="18" cy="18" r="16" fill="none" stroke="#3b82f6" stroke-width="3"
-                                    stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
-                                    </svg>
-                                    <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">0%</span>
-                                    </div>
-                                    <div class="text-sm">
-                                    <div class="text-gray-500">完成率</div>
-                                    <div id="stats-completed" class="font-semibold text-gray-900">0/0</div>
-                                    </div>
-                                    </div>
-                                    <div class="text-right">
-                                    <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
-                                    <div class="text-xs text-gray-500">待办任务</div>
-                                    </div>
-                                    <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
-                                    </div>
-                                    </div>
-                                    </div>
-                                    </header>
+                                        stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
+                                </svg>
+                                <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">0%</span>
+                            </div>
+                            <div class="text-sm">
+                                <div class="text-gray-500">完成率</div>
+                                <div id="stats-completed" class="font-semibold text-gray-900">0/0</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
 
 
-        <main class="max-w-7xl mx-auto px-4 py-6">
+
+                            <div class="text-xs text-gray-500">待办任务</div>
+                            </div>
+                            <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
+                            </div>
+                            </div>
+                            </div>
+                            </header>
+
+
+        class="max-w-7xl mx-auto px-4 py-6">
         <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
             <div class="flex flex-wrap items-center gap-4">
                 <div class="flex-1 min-w-[300px]">
@@ -153,15 +146,11 @@
                 </div>
                 <div class="flex gap-2">
                     <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
-
-
                     <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
-                    </div>
-                    </div>
-                    </div>
-
-
-            <div class="bg-white rounded-xl shadow-sm mb-6">
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm mb-6">
             <div class="flex border-b">
                 <button id="tab-pending-btn" onclick="switchTab('pending')" class="tab-active px-6 py-3 font-medium text-sm flex items-center gap-2">
                     <span>待办任务</span>
@@ -170,9 +159,14 @@
                 <button id="tab-completed-btn" onclick="switchTab('completed')" class="tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2">
                     <span>已完成</span>
                     <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
-                </button>
-            </div>
-        </div>
+
+
+
+                    </button>
+                    </div>
+                    </div>
+
+
         <div id="task-container" class="space-y-4"></div>
         <div id="empty-state" class="hidden text-center py-16">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -188,27 +182,21 @@
 
 
     <script>
+        // Supabase 配置
+        var supabaseUrl = 'https://irvytycvwmdirtnrqtmq.supabase.co';
+        var supabaseKey = 'sb_publishable_cfCHg0giX-Rh9XItueuQ2g_bmNymsPl';
+        var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         var tasks = [];
         var currentTab = 'pending';
         var currentAM = '';
         var currentPriority = '';
         var searchQuery = '';
         var sortMode = 'task';
-        var teamCode = '';
-        var syncEnabled = false;
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
         });
         function checkLoginStatus() {
             var savedAM = localStorage.getItem('current_am');
-            var savedTeamCode = localStorage.getItem('team_code');
-            
-            if (savedTeamCode) {
-                document.getElementById('team-code-input').value = savedTeamCode;
-                teamCode = savedTeamCode;
-                syncEnabled = true;
-            }
-            
             if (savedAM) {
                 currentAM = savedAM;
                 showMainApp();
@@ -221,108 +209,85 @@
             document.getElementById('main-app').classList.add('hidden');
             generateAMButtons();
         }
-        function showMainApp() {
+        async function showMainApp() {
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('current-user-name').textContent = currentAM;
-            loadFromStorage();
+            await loadFromSupabase();
             render();
-            
-            if (syncEnabled) {
-                document.getElementById('sync-status').classList.remove('hidden');
-                startAutoSync();
+            document.getElementById('sync-status').classList.remove('hidden');
+            updateSyncStatus('已同步', 'online');
+        }
+        async function loadFromSupabase() {
+            try {
+                updateSyncStatus('同步中...', 'syncing');
+                var { data, error } = await supabase.from('tasks').select('*');
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    tasks = data.map(function(row) {
+                        return {
+                            id: row.id,
+                            seller: row.seller,
+                            am: row.am,
+                            taskName: row.task_name,
+                            priority: row.priority || 'P2',
+                            completed: row.completed || false,
+                            note: row.note || '',
+                            createdAt: row.created_at
+                        };
+                    });
+                }
+                updateSyncStatus('已同步', 'online');
+            } catch (err) {
+                console.error('Supabase error:', err);
+                loadFromStorage();
+                updateSyncStatus('离线模式', 'offline');
             }
         }
-        async function connectTeam() {
-            var inputCode = document.getElementById('team-code-input').value.trim();
-            if (!inputCode) {
-                alert('请输入团队码');
-                return;
-            }
-            
-            teamCode = inputCode;
-            localStorage.setItem('team_code', teamCode);
-            syncEnabled = true;
-            
-            updateSyncStatus('同步中...', 'syncing');
-            
+        async function saveToSupabase() {
             try {
-                await syncFromCloud();
-                document.getElementById('team-code-display').textContent = '已连接：' + teamCode;
-                document.getElementById('team-code-display').classList.remove('hidden');
+                updateSyncStatus('同步中...', 'syncing');
+                // 先清空再插入（简单方案）
+                await supabase.from('tasks').delete().neq('id', '');
+                for (var i = 0; i < tasks.length; i++) {
+                    var t = tasks[i];
+                    await supabase.from('tasks').insert({
+                        id: t.id,
+                        seller: t.seller,
+                        am: t.am,
+                        task_name: t.taskName,
+                        priority: t.priority,
+                        completed: t.completed,
+                        note: t.note,
+                        created_at: t.createdAt || new Date().toISOString()
+                    });
+                }
                 updateSyncStatus('已同步', 'online');
-                generateAMButtons();
             } catch (err) {
                 console.error('Sync error:', err);
                 updateSyncStatus('同步失败', 'offline');
             }
         }
-        async function syncFromCloud() {
-            if (!teamCode) return;
-            
-            try {
-                var response = await fetch('https://api.jsonbin.io/v3/b/' + teamCode + '/latest', {
-                    headers: { 'X-Master-Key': '$2a$10$dummykeyforpublicbin' }
-                });
-                
-                if (response.status === 404) {
-                    return;
-                }
-                
-                var data = await response.json();
-                if (data.record && data.record.tasks) {
-                    tasks = data.record.tasks;
-                    saveToStorage();
-                }
-            } catch (err) {
-                console.log('No cloud data yet');
-            }
-        }
-        async function syncToCloud() {
-            if (!teamCode || !syncEnabled) return;
-            
-            updateSyncStatus('同步中...', 'syncing');
-            
-            try {
-                await fetch('https://api.jsonbin.io/v3/b/' + teamCode, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': '$2a$10$dummykeyforpublicbin'
-                    },
-                    body: JSON.stringify({ tasks: tasks, updatedAt: Date.now() })
-                });
-
-
-            updateSyncStatus('已同步', 'online');
-            } catch (err) {
-            updateSyncStatus('同步失败', 'offline');
-            }
-            }
-
-
         function updateSyncStatus(text, type) {
-        var el = document.getElementById('sync-status');
-        el.textContent = text;
-        el.className = 'sync-status sync-' + type;
-    }
-    function startAutoSync() {
-        setInterval(function() {
-            if (syncEnabled) syncFromCloud();
-        }, 30000);
-    }
-    function generateAMButtons() {
-        loadFromStorage();
-        var ams = [];
-        var amSet = {};
-        for (var i = 0; i < tasks.length; i++) {
-            if (!amSet[tasks[i].am]) {
-                amSet[tasks[i].am] = true;
-                ams.push(tasks[i].am);
-            }
+            var el = document.getElementById('sync-status');
+            el.textContent = text;
+            el.className = 'sync-status sync-' + type;
         }
-        ams.sort();
-        var container = document.getElementById('am-buttons');
+        function generateAMButtons() {
+            var ams = [];
+            var amSet = {};
+
+
+            for (var i = 0; i < tasks.length; i++) {
+            if (!amSet[tasks[i].am]) {
+            amSet[tasks[i].am] = true;
+            ams.push(tasks[i].am);
+            }
+            }
+            ams.sort();
+
+
+            var container = document.getElementById('am-buttons');
         var uploadArea = document.getElementById('login-upload-area');
         var clearArea = document.getElementById('clear-all-area');
         
@@ -348,7 +313,7 @@
             if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
                 tasks = [];
                 localStorage.removeItem('am_tasks');
-                syncToCloud();
+                saveToSupabase();
                 generateAMButtons();
                 alert('所有任务已清空');
             }
@@ -385,33 +350,32 @@
                 
                 if (textEl) textEl.textContent = '点击上传 Excel 文件';
                 
-                if (syncEnabled) syncToCloud();
-
-
-
-            if (isLoginPage) {
-            generateAMButtons();
-            } else {
-            render();
-            }
+                saveToSupabase();
+                
+                if (isLoginPage) {
+                    generateAMButtons();
+                } else {
+                    render();
+                }
             } catch (err) {
-            alert('导入失败：' + err.message);
-            if (textEl) textEl.textContent = '点击上传 Excel 文件';
+                alert('导入失败：' + err.message);
+                if (textEl) textEl.textContent = '点击上传 Excel 文件';
             }
-            };
-            reader.readAsArrayBuffer(file);
-            }
-
-
-        function importTasksFromRows(rows) {
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    function importTasksFromRows(rows) {
         var now = Date.now();
         var existingKeys = {};
         
         for (var i = 0; i < tasks.length; i++) {
+
+
             var key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
-            existingKeys[key] = true;
-        }
-        
+existingKeys[key] = true;
+}
+
+
         for (var i = 1; i < rows.length; i++) {
             var row = rows[i];
             if (!row || row.length < 3) continue;
@@ -431,7 +395,7 @@
                         priority: 'P2',
                         completed: false,
                         completedAt: null,
-                        createdAt: now,
+                        createdAt: new Date().toISOString(),
                         note: ''
                     });
                     existingKeys[key] = true;
@@ -457,12 +421,11 @@
         for (var i = 0; i < tasks.length; i++) {
             if (tasks[i].id === id) {
                 tasks[i].completed = !tasks[i].completed;
-                tasks[i].completedAt = tasks[i].completed ? Date.now() : null;
                 break;
             }
         }
         saveToStorage();
-        if (syncEnabled) syncToCloud();
+        saveToSupabase();
         render();
     }
     function updatePriority(id, priority) {
@@ -473,7 +436,7 @@
             }
         }
         saveToStorage();
-        if (syncEnabled) syncToCloud();
+        saveToSupabase();
         render();
     }
     function updateNote(id, note) {
@@ -484,7 +447,7 @@
             }
         }
         saveToStorage();
-        if (syncEnabled) syncToCloud();
+        saveToSupabase();
     }
     function switchTab(tab) {
         currentTab = tab;
@@ -497,12 +460,9 @@
             completedBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
         } else {
             pendingBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
-
-
-        completedBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
-}
-
-
+            completedBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
+        }
+        
         render();
     }
     function render() {
@@ -515,9 +475,13 @@
             if (currentPriority && t.priority !== currentPriority) continue;
             if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
             if (currentTab === 'pending' && t.completed) continue;
+
+
             if (currentTab === 'completed' && !t.completed) continue;
-            filtered.push(t);
-        }
+filtered.push(t);
+}
+
+
         var container = document.getElementById('task-container');
         var emptyState = document.getElementById('empty-state');
         if (filtered.length === 0) {
@@ -583,43 +547,42 @@
             html += '<div class="flex items-center gap-2">';
             html += '<span class="text-sm text-gray-500 font-medium">' + completedCount + '/' + allTasksInGroup.length + '</span>';
             html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
-
-
-
-        html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
-        html += '</div>';
-        html += '</div>';
-        html += '</div>';
-        html += '<div class="space-y-2">';
-
-
-        for (var i = 0; i < groupTasks.length; i++) {
+            html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="space-y-2">';
+            
+            for (var i = 0; i < groupTasks.length; i++) {
                 var t = groupTasks[i];
                 html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
                 html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
                 html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
                 html += '</div>';
                 if (sortMode === 'task') {
+
+
                     html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
-                } else {
-                    html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
-                }
-                html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
-                html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
-                html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
-                if (currentTab === 'pending') {
-                    html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
-                    html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
-                    html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
-                    html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
-                    html += '</select>';
-                } else {
-                    var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
-                    html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
-                }
-                html += '</div>';
-            }
-            
+} else {
+html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
+}
+html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
+html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
+html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
+if (currentTab === 'pending') {
+html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
+html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
+html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
+html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
+html += '</select>';
+} else {
+var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
+html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
+}
+html += '</div>';
+}
+
+
             html += '</div>';
             html += '</div>';
         }
@@ -656,41 +619,40 @@
             alert('没有数据可导出');
             return;
         }
-
-
         var data = [];
         for (var i = 0; i < amTasks.length; i++) {
-        var t = amTasks[i];
-        data.push({
-        '卖家': t.seller,
-        'AM': t.am,
-        '任务': t.taskName,
-        '优先级': t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通'),
-        '完成状态': t.completed ? '已完成' : '待办',
-        '完成时间': t.completedAt ? new Date(t.completedAt).toLocaleString('zh-CN') : '-',
-        '备注': t.note
-        });
+            var t = amTasks[i];
+            data.push({
+                '卖家': t.seller,
+                'AM': t.am,
+                '任务': t.taskName,
+                '优先级': t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通'),
+                '完成状态': t.completed ? '已完成' : '待办',
+                '备注': t.note
+            });
         }
-
-
         var ws = XLSX.utils.json_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '任务列表');
         XLSX.writeFile(wb, 'AM任务列表_' + currentAM + '_' + new Date().toLocaleDateString('zh-CN') + '.xlsx');
     }
     function clearAllData() {
+
+
         if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
-            var newTasks = [];
-            for (var i = 0; i < tasks.length; i++) {
-                if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
-            }
-            tasks = newTasks;
-            saveToStorage();
-            if (syncEnabled) syncToCloud();
-            render();
-        }
-    }
-    function saveToStorage() {
+var newTasks = [];
+for (var i = 0; i < tasks.length; i++) {
+if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
+}
+tasks = newTasks;
+saveToStorage();
+saveToSupabase();
+render();
+}
+}
+
+
+        function saveToStorage() {
         localStorage.setItem('am_tasks', JSON.stringify(tasks));
     }
     function loadFromStorage() {
