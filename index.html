@@ -6,7 +6,6 @@
     <title>客户经理任务管理系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #f8fafc; }
@@ -39,10 +38,6 @@
         .upload-area:hover { border-color: #3b82f6; background-color: #eff6ff; }
         .login-card { animation: fadeIn 0.5s ease; }
         .hidden { display: none !important; }
-        .sync-status { font-size: 11px; padding: 2px 8px; border-radius: 12px; }
-        .sync-online { background: #dcfce7; color: #16a34a; }
-        .sync-offline { background: #f3f4f6; color: #6b7280; }
-        .sync-syncing { background: #dbeafe; color: #2563eb; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -66,7 +61,9 @@
                 </div>
             </div>
             <div id="clear-all-area" class="mt-4 hidden">
-                <button onclick="clearAllTasksWarning()" class="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm">⚠️ 清空所有任务</button>
+                <button onclick="clearAllTasksWarning()" class="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm">
+                    ⚠️ 清空所有任务
+                </button>
                 <p class="text-xs text-red-400 text-center mt-2">此操作将删除所有 AM 的任务数据，不可恢复</p>
             </div>
         </div>
@@ -84,7 +81,6 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-6">
-                        <span id="sync-status" class="sync-status sync-offline hidden">未同步</span>
                         <div class="flex items-center gap-2">
                             <div class="w-12 h-12 relative">
                                 <svg class="progress-ring w-12 h-12" viewBox="0 0 36 36">
@@ -101,9 +97,10 @@
                         </div>
                         <div class="text-right">
                             <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
-
-
                             <div class="text-xs text-gray-500">待办任务</div>
+
+
+
                             </div>
                             <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
                             </div>
@@ -158,15 +155,15 @@
                 <button id="tab-completed-btn" onclick="switchTab('completed')" class="tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2">
                     <span>已完成</span>
                     <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
-
-
-                    </button>
-                    </div>
-                    </div>
+                </button>
+            </div>
+        </div>
 
 
             <div id="task-container" class="space-y-4"></div>
-        <div id="empty-state" class="hidden text-center py-16">
+
+
+            <div id="empty-state" class="hidden text-center py-16">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -180,10 +177,6 @@
 
 
     <script>
-        // Supabase 配置 - 自动同步，无需用户输入
-        var supabaseUrl = 'https://irvytycvwmdirtnrqtmq.supabase.co';
-        var supabaseKey = 'sb_publishable_cfCHg0giX-Rh9XItueuQ2g_bmNymsPl';
-        var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         var tasks = [];
         var currentTab = 'pending';
         var currentAM = '';
@@ -205,69 +198,14 @@
         function showLoginPage() {
             document.getElementById('login-page').classList.remove('hidden');
             document.getElementById('main-app').classList.add('hidden');
-            loadFromSupabaseSilent();
+            generateAMButtons();
         }
-        async function loadFromSupabaseSilent() {
-            try {
-                var { data, error } = await supabase.from('tasks').select('*');
-                if (error) throw error;
-                if (data && data.length > 0) {
-                    tasks = data.map(function(row) {
-                        return {
-                            id: row.id,
-                            seller: row.seller,
-                            am: row.am,
-                            taskName: row.task_name,
-                            priority: row.priority || 'P2',
-                            completed: row.completed || false,
-                            note: row.note || '',
-                            createdAt: row.created_at
-                        };
-                    });
-                    saveToStorage();
-                }
-                generateAMButtons();
-            } catch (err) {
-                loadFromStorage();
-                generateAMButtons();
-            }
-        }
-        async function showMainApp() {
+        function showMainApp() {
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('current-user-name').textContent = currentAM;
-            await loadFromSupabaseSilent();
+            loadFromStorage();
             render();
-            document.getElementById('sync-status').classList.remove('hidden');
-            updateSyncStatus('已同步', 'online');
-        }
-        async function saveToSupabase() {
-            try {
-                updateSyncStatus('同步中...', 'syncing');
-                await supabase.from('tasks').delete().neq('id', '');
-                for (var i = 0; i < tasks.length; i++) {
-                    var t = tasks[i];
-                    await supabase.from('tasks').insert({
-                        id: t.id,
-                        seller: t.seller,
-                        am: t.am,
-                        task_name: t.taskName,
-                        priority: t.priority,
-                        completed: t.completed,
-                        note: t.note,
-                        created_at: t.createdAt || new Date().toISOString()
-                    });
-                }
-                updateSyncStatus('已同步', 'online');
-            } catch (err) {
-                console.error('Sync error:', err);
-                updateSyncStatus('同步失败', 'offline');
-            }
-        }
-        function updateSyncStatus(text, type) {
-            var el = document.getElementById('sync-status');
-            el.textContent = text;
-            el.className = 'sync-status sync-' + type;
         }
         function generateAMButtons() {
             loadFromStorage();
@@ -275,79 +213,75 @@
             var amSet = {};
             for (var i = 0; i < tasks.length; i++) {
                 if (!amSet[tasks[i].am]) {
-
-
-                amSet[tasks[i].am] = true;
-ams.push(tasks[i].am);
-}
-}
-ams.sort();
-
-
-        var container = document.getElementById('am-buttons');
-        var uploadArea = document.getElementById('login-upload-area');
-        var clearArea = document.getElementById('clear-all-area');
-        
-        if (ams.length === 0) {
-            container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
-            uploadArea.classList.remove('hidden');
-            clearArea.classList.add('hidden');
-        } else {
-            var html = '';
-            for (var i = 0; i < ams.length; i++) {
-                html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
-                html += '<span>' + ams[i] + '</span>';
-                html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
-                html += '</button>';
+                    amSet[tasks[i].am] = true;
+                    ams.push(tasks[i].am);
+                }
             }
-            container.innerHTML = html;
-            uploadArea.classList.remove('hidden');
-            clearArea.classList.remove('hidden');
-        }
-    }
-    function clearAllTasksWarning() {
-        if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
-            if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
-                tasks = [];
-                localStorage.removeItem('am_tasks');
-                saveToSupabase();
-                generateAMButtons();
-                alert('所有任务已清空');
+            ams.sort();
+            var container = document.getElementById('am-buttons');
+            var uploadArea = document.getElementById('login-upload-area');
+            var clearArea = document.getElementById('clear-all-area');
+            
+            if (ams.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
+                uploadArea.classList.remove('hidden');
+                clearArea.classList.add('hidden');
+            } else {
+                var html = '';
+                for (var i = 0; i < ams.length; i++) {
+                    html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
+                    html += '<span>' + ams[i] + '</span>';
+                    html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+                    html += '</button>';
+                }
+                container.innerHTML = html;
+                uploadArea.classList.remove('hidden');
+                clearArea.classList.remove('hidden');
             }
         }
-    }
-    function handleLoginFileUpload(input) {
-        handleFileUpload(input, true);
-    }
-    function loginAs(am) {
-        currentAM = am;
-        localStorage.setItem('current_am', am);
-        showMainApp();
-    }
-    function logout() {
-        currentAM = '';
-        localStorage.removeItem('current_am');
-        showLoginPage();
-    }
-    function handleFileUpload(input, isLoginPage) {
-        var file = input.files[0];
-        if (!file) return;
-        var textEl = isLoginPage ? null : document.getElementById('upload-text');
-        if (textEl) textEl.textContent = '正在读取: ' + file.name;
-        var reader = new FileReader();
-        reader.onload = function(e) {
+        function clearAllTasksWarning() {
+            if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
+                if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
+                    tasks = [];
+                    localStorage.removeItem('am_tasks');
+                    generateAMButtons();
+                    alert('所有任务已清空');
+                }
+            }
+        }
+        function handleLoginFileUpload(input) {
+            handleFileUpload(input, true);
+        }
+        function loginAs(am) {
+            currentAM = am;
+            localStorage.setItem('current_am', am);
+            showMainApp();
+        }
+        function logout() {
+            currentAM = '';
+            localStorage.removeItem('current_am');
+            showLoginPage();
+        }
+        function handleFileUpload(input, isLoginPage) {
+            var file = input.files[0];
+            if (!file) return;
+            var textEl = isLoginPage ? null : document.getElementById('upload-text');
+            if (textEl) textEl.textContent = '正在读取: ' + file.name;
+            var reader = new FileReader();
+
+
+            reader.onload = function(e) {
             try {
-                var data = new Uint8Array(e.target.result);
-                var workbook = XLSX.read(data, { type: 'array' });
-                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+
                 importTasksFromRows(jsonData);
                 alert('导入成功！');
                 
                 if (textEl) textEl.textContent = '点击上传 Excel 文件';
-                
-                saveToSupabase();
                 
                 if (isLoginPage) {
                     generateAMButtons();
@@ -369,14 +303,12 @@ ams.sort();
             var key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
             existingKeys[key] = true;
         }
-
-
+        
         for (var i = 1; i < rows.length; i++) {
-var row = rows[i];
-if (!row || row.length < 3) continue;
-
-
-        var seller = String(row[0] || '').trim();
+            var row = rows[i];
+            if (!row || row.length < 3) continue;
+            
+            var seller = String(row[0] || '').trim();
             var am = String(row[1] || '').trim();
             var taskName = String(row[2] || '').trim();
             
@@ -390,7 +322,8 @@ if (!row || row.length < 3) continue;
                         taskName: taskName,
                         priority: 'P2',
                         completed: false,
-                        createdAt: new Date().toISOString(),
+                        completedAt: null,
+                        createdAt: now,
                         note: ''
                     });
                     existingKeys[key] = true;
@@ -416,11 +349,11 @@ if (!row || row.length < 3) continue;
         for (var i = 0; i < tasks.length; i++) {
             if (tasks[i].id === id) {
                 tasks[i].completed = !tasks[i].completed;
+                tasks[i].completedAt = tasks[i].completed ? Date.now() : null;
                 break;
             }
         }
         saveToStorage();
-        saveToSupabase();
         render();
     }
     function updatePriority(id, priority) {
@@ -431,7 +364,6 @@ if (!row || row.length < 3) continue;
             }
         }
         saveToStorage();
-        saveToSupabase();
         render();
     }
     function updateNote(id, note) {
@@ -442,14 +374,18 @@ if (!row || row.length < 3) continue;
             }
         }
         saveToStorage();
-        saveToSupabase();
     }
     function switchTab(tab) {
         currentTab = tab;
         
         var pendingBtn = document.getElementById('tab-pending-btn');
+
+
+
         var completedBtn = document.getElementById('tab-completed-btn');
-        
+
+
+
         if (tab === 'pending') {
             pendingBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
             completedBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
@@ -474,11 +410,7 @@ if (!row || row.length < 3) continue;
             filtered.push(t);
         }
         var container = document.getElementById('task-container');
-
-
         var emptyState = document.getElementById('empty-state');
-
-
         if (filtered.length === 0) {
             container.innerHTML = '';
             emptyState.classList.remove('hidden');
@@ -536,18 +468,21 @@ if (!row || row.length < 3) continue;
             html += '<div class="flex items-center gap-3">';
             html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
             if (p0Count > 0) {
+
+
                 html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
-            }
-            html += '</div>';
-            html += '<div class="flex items-center gap-2">';
-            html += '<span class="text-sm text-gray-500 font-medium">' + completedCount + '/' + allTasksInGroup.length + '</span>';
-            html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
-            html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
-            html += '</div>';
-            html += '</div>';
-            html += '</div>';
-            html += '<div class="space-y-2">';
-            
+                }
+                html += '</div>';
+                html += '<div class="flex items-center gap-2">';
+                html += '<span class="text-sm text-gray-500 font-medium">' + completedCount + '/' + allTasksInGroup.length + '</span>';
+                html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
+                html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="space-y-2">';
+
+
             for (var i = 0; i < groupTasks.length; i++) {
                 var t = groupTasks[i];
                 html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
@@ -557,28 +492,25 @@ if (!row || row.length < 3) continue;
                 if (sortMode === 'task') {
                     html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
                 } else {
-
-
-                html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
-}
-html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
-html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
-html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
-if (currentTab === 'pending') {
-html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
-html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
-html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
-html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
-html += '</select>';
-} else {
-var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
-html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
-}
-html += '</div>';
-}
-
-
-        html += '</div>';
+                    html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
+                }
+                html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
+                html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
+                html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
+                if (currentTab === 'pending') {
+                    html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
+                    html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
+                    html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
+                    html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
+                    html += '</select>';
+                } else {
+                    var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
+                    html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
+                }
+                html += '</div>';
+            }
+            
+            html += '</div>';
             html += '</div>';
         }
         container.innerHTML = html;
@@ -600,11 +532,15 @@ html += '</div>';
         document.getElementById('stats-completed').textContent = completed + '/' + total;
         document.getElementById('progress-text').textContent = rate + '%';
         document.getElementById('progress-circle').style.strokeDashoffset = 100 - rate;
-        
+
+
+
         document.getElementById('badge-pending').textContent = pending;
         document.getElementById('badge-completed').textContent = completed;
-    }
-    function exportData() {
+        }
+
+
+        function exportData() {
         var amTasks = [];
         for (var i = 0; i < tasks.length; i++) {
             if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
@@ -623,6 +559,7 @@ html += '</div>';
                 '任务': t.taskName,
                 '优先级': t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通'),
                 '完成状态': t.completed ? '已完成' : '待办',
+                '完成时间': t.completedAt ? new Date(t.completedAt).toLocaleString('zh-CN') : '-',
                 '备注': t.note
             });
         }
@@ -635,19 +572,14 @@ html += '</div>';
         if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
             var newTasks = [];
             for (var i = 0; i < tasks.length; i++) {
-
-
-            if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
-}
-tasks = newTasks;
-saveToStorage();
-saveToSupabase();
-render();
-}
-}
-
-
-        function saveToStorage() {
+                if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
+            }
+            tasks = newTasks;
+            saveToStorage();
+            render();
+        }
+    }
+    function saveToStorage() {
         localStorage.setItem('am_tasks', JSON.stringify(tasks));
     }
     function loadFromStorage() {
