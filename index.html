@@ -224,30 +224,27 @@
         }
     }
     async function saveToCloud(am) {
-        if (!db || !am || isSyncing) return;
-        isSyncing = true;
-        
-        let amTasks = [];
-        for (let i = 0; i < tasks.length; i++) {
-            if (tasks[i].am === am) {
-                amTasks.push(tasks[i]);
-            }
-        }
-        
-        try {
-            await db.collection('tasks').doc(am).set({
-                amName: am,
-                tasks: amTasks,
-                updatedAt: new Date().toISOString()
-            });
-            localStorage.setItem('am_tasks', JSON.stringify(tasks));
-        } catch (error) {
-            console.error('保存到云端失败:', error);
-            alert('同步失败，请检查网络');
-        } finally {
-            isSyncing = false;
+    if (!db || !am) return;
+    
+    let amTasks = [];
+    for (let i = 0; i < tasks.length; i++) {
+        if (tasks[i].am === am) {
+            amTasks.push(tasks[i]);
         }
     }
+    
+    try {
+        await db.collection('tasks').doc(am).set({
+            amName: am,
+            tasks: amTasks,
+            updatedAt: new Date().toISOString()
+        });
+        localStorage.setItem('am_tasks', JSON.stringify(tasks));
+    } catch (error) {
+        console.error('保存到云端失败:', error);
+        alert('同步失败，请检查网络');
+    }
+}
     function loadFromStorage() {
         // 数据从云端加载，此函数保留兼容
     }
