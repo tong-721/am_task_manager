@@ -362,51 +362,62 @@ if (textEl) textEl.textContent = '点击上传 Excel 文件';
 reader.readAsArrayBuffer(file);
 }
     async function importTasksFromRows(rows) {
-        let now = Date.now();
-        let existingKeys = {};
-        for (let i = 0; i < tasks.length; i++) {
-            let key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
-            existingKeys[key] = true;
-        }
-        let newTasks = [];
-        for (let i = 1; i < rows.length; i++) {
-            let row = rows[i];
-            if (!row || row.length < 3) continue;
-            let seller = String(row[0] || '').trim();
-            let am = String(row[1] || '').trim();
-            let taskName = String(row[2] || '').trim();
-            if (seller && am && taskName) {
-                let key = seller + '|' + am + '|' + taskName;
-                if (!existingKeys[key]) {
-                    newTasks.push({
-                        id: 'task_' + now + '_' + i,
-                        seller: seller,
-                        am: am,
-                        taskName: taskName,
-                        priority: 'P2',
-                        completed: false,
-                        completedAt: null,
-                        createdAt: now,
-                        note: ''
-                    });
-                    existingKeys[key] = true;
+    let now = Date.now();
+    let existingKeys = {};
+    for (let i = 0; i < tasks.length; i++) {
+        let key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
+        existingKeys[key] = true;
+    }
+    
+    let newTasksByAM = {}; // 按 AM 分组存储新任务
+    
+    for (let i = 1; i < rows.length; i++) {
+        let row = rows[i];
+        if (!row || row.length < 3) continue;
+        let seller = String(row[0] || '').trim();
+        let am = String(row[1] || '').trim();
+        let taskName = String(row[2] || '').trim();
+        if (seller && am && taskName) {
+            let key = seller + '|' + am + '|' + taskName;
+            if (!existingKeys[key]) {
+                let task = {
+                    id: 'task_' + now + '_' + i,
+                    seller: seller,
+                    am: am,
+                    taskName: taskName,
+                    priority: 'P2',
+                    completed: false,
+                    completedAt: null,
+                    createdAt: now,
+                    note: ''
+                };
+                tasks.push(task); // 添加到全局 tasks
+                
+                // 按 AM 分组
+                if (!newTasksByAM[am]) {
+                    newTasksByAM[am] = [];
                 }
+                newTasksByAM[am].push(task);
+                
+                existingKeys[key] = true;
             }
         }
-        // 合并到全局 tasks
-        for (let i = 0; i < newTasks.length; i++) {
-            tasks.push(newTasks[i]);
+    }
+    
+    // 为每个 AM 分别保存到云端
+    let amList = Object.keys(newTasksByAM);
+    if (amList.length > 0) {
+        for (let am of amList) {
+            await saveToCloud(am);
         }
-        // 同步到云端
-        if (currentAM) {
-            await saveToCloud(currentAM);
-        } else if (newTasks.length > 0) {
-            // 如果没有 currentAM，用第一个任务的 AM
-            currentAM = newTasks[0].am;
+        
+        // 如果没有 currentAM，设置为第一个
+        if (!currentAM) {
+            currentAM = amList[0];
             localStorage.setItem('current_am', currentAM);
-            await saveToCloud(currentAM);
         }
     }
+}
     function changeSortMode(mode) {
         sortMode = mode;
         render();
