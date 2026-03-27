@@ -315,15 +315,33 @@ function renderAMButtons(ams) {
 }
         
         function clearAllTasksWarning() {
-            if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
-                if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
-                    tasks = [];
-                    localStorage.removeItem('am_tasks');
-                    generateAMButtons();
-                    alert('所有任务已清空');
-                }
-            }
-        }
+    if (!confirm('⚠️ 警告：此操作将永久删除本地所有 AM 的任务数据！\n\n确定要继续吗？')) {
+        return;
+    }
+    
+    var deleteCloud = confirm('是否同时删除云端数据？\n\n- 点"确定"：本地 + 云端一起删除\n- 点"取消"：只删除本地');
+    
+    if (deleteCloud && db) {
+        db.collection('tasks').get().then(function(snapshot) {
+            var batch = db.batch();
+            snapshot.forEach(function(doc) {
+                batch.delete(doc.ref);
+            });
+            return batch.commit();
+        }).then(function() {
+            console.log('云端数据已删除');
+        }).catch(function(error) {
+            console.error('删除云端数据失败:', error);
+            alert('云端数据删除失败: ' + error.message);
+        });
+    }
+    
+    tasks = [];
+    localStorage.removeItem('am_tasks');
+    localStorage.removeItem('current_am');
+    generateAMButtons();
+    alert('本地任务已清空');
+}
 
         function handleLoginFileUpload(input) {
             handleFileUpload(input, true);
