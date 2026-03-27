@@ -369,7 +369,7 @@ reader.readAsArrayBuffer(file);
         existingKeys[key] = true;
     }
     
-    let newTasksByAM = {}; // 按 AM 分组存储新任务
+    let newTasksByAM = {};
     
     for (let i = 1; i < rows.length; i++) {
         let row = rows[i];
@@ -391,14 +391,12 @@ reader.readAsArrayBuffer(file);
                     createdAt: now,
                     note: ''
                 };
-                tasks.push(task); // 添加到全局 tasks
+                tasks.push(task);
                 
-                // 按 AM 分组
                 if (!newTasksByAM[am]) {
                     newTasksByAM[am] = [];
                 }
                 newTasksByAM[am].push(task);
-                
                 existingKeys[key] = true;
             }
         }
@@ -407,15 +405,23 @@ reader.readAsArrayBuffer(file);
     // 为每个 AM 分别保存到云端
     let amList = Object.keys(newTasksByAM);
     if (amList.length > 0) {
+        // 等待所有保存完成
+        let savePromises = [];
         for (let am of amList) {
-            await saveToCloud(am);
+            savePromises.push(saveToCloud(am));
         }
+        await Promise.all(savePromises);
         
         // 如果没有 currentAM，设置为第一个
         if (!currentAM) {
             currentAM = amList[0];
             localStorage.setItem('current_am', currentAM);
         }
+        
+        // 延迟刷新，确保 Firebase 数据已写入
+        setTimeout(() => {
+            generateAMButtons();
+        }, 500);
     }
 }
     function changeSortMode(mode) {
