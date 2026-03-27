@@ -238,38 +238,82 @@
             render();
         }
 
-        function generateAMButtons() {
-            loadFromStorage();
-            var ams = [];
-            var amSet = {};
-            for (var i = 0; i < tasks.length; i++) {
-                if (!amSet[tasks[i].am]) {
-                    amSet[tasks[i].am] = true;
-                    ams.push(tasks[i].am);
+function generateAMButtons() {
+    loadFromStorage();
+    var container = document.getElementById('am-buttons');
+    var uploadArea = document.getElementById('login-upload-area');
+    var clearArea = document.getElementById('clear-all-area');
+    
+    // 先显示本地已有的 AM（如果有）
+    var localAMs = [];
+    var amSet = {};
+    for (var i = 0; i < tasks.length; i++) {
+        if (!amSet[tasks[i].am]) {
+            amSet[tasks[i].am] = true;
+            localAMs.push(tasks[i].am);
+        }
+    }
+    
+    // 如果有本地数据，先显示
+    if (localAMs.length > 0) {
+        renderAMButtons(localAMs);
+        uploadArea.classList.remove('hidden');
+        clearArea.classList.remove('hidden');
+    } else {
+        container.innerHTML = '<p class="text-center text-gray-500 py-4">正在检查云端数据...</p>';
+        uploadArea.classList.add('hidden');
+        clearArea.classList.add('hidden');
+    }
+    
+    // 从云端获取 AM 列表
+    if (db) {
+        db.collection('tasks').get().then(function(snapshot) {
+            var cloudAMs = [];
+            snapshot.forEach(function(doc) {
+                var amName = doc.id;
+                if (!amSet[amName]) {
+                    amSet[amName] = true;
+                    cloudAMs.push(amName);
                 }
-            }
-            ams.sort();
-            var container = document.getElementById('am-buttons');
-            var uploadArea = document.getElementById('login-upload-area');
-            var clearArea = document.getElementById('clear-all-area');
-            if (ams.length === 0) {
+            });
+            
+            var allAMs = localAMs.concat(cloudAMs);
+            allAMs.sort();
+            
+            if (allAMs.length === 0) {
                 container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
                 uploadArea.classList.remove('hidden');
                 clearArea.classList.add('hidden');
             } else {
-                var html = '';
-                for (var i = 0; i < ams.length; i++) {
-                    html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
-                    html += '<span>' + ams[i] + '</span>';
-                    html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
-                    html += '</button>';
-                }
-                container.innerHTML = html;
+                renderAMButtons(allAMs);
                 uploadArea.classList.remove('hidden');
                 clearArea.classList.remove('hidden');
             }
-        }
+        }).catch(function(error) {
+            console.error('获取云端数据失败:', error);
+            if (localAMs.length > 0) {
+                renderAMButtons(localAMs);
+            } else {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
+                uploadArea.classList.remove('hidden');
+            }
+        });
+    }
+}
 
+// 新增：渲染 AM 按钮的辅助函数
+function renderAMButtons(ams) {
+    var container = document.getElementById('am-buttons');
+    var html = '';
+    for (var i = 0; i < ams.length; i++) {
+        html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
+        html += '<span>' + ams[i] + '</span>';
+        html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+        html += '</button>';
+    }
+    container.innerHTML = html;
+}
+        
         function clearAllTasksWarning() {
             if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
                 if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
