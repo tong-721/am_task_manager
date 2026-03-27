@@ -3,593 +3,701 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客户经理任务管理系统</title>
+    <title>AM Task Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f8fafc; }
-        .task-card { transition: all 0.2s ease; }
-        .task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-        .checkbox-wrapper { position: relative; }
-        .custom-checkbox { 
-            width: 20px; height: 20px; border: 2px solid #cbd5e1; 
-            border-radius: 4px; cursor: pointer; transition: all 0.2s;
-        }
-        .custom-checkbox:hover { border-color: #3b82f6; }
-        .custom-checkbox.checked { 
-            background: #3b82f6; border-color: #3b82f6; 
-        }
-        .custom-checkbox.checked::after {
-            content: '✓'; color: white; position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 12px; font-weight: bold;
-        }
-        .priority-p0 { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-        .priority-p1 { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-        .priority-p2 { background: #dbeafe; color: #2563eb; border: 1px solid #bfdbfe; }
-        .progress-ring { transform: rotate(-90deg); }
-        .fade-in { animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        .tab-inactive { color: #64748b; }
-        .tab-inactive:hover { color: #334155; }
-        .upload-area { cursor: pointer; transition: all 0.2s; }
-        .upload-area:hover { border-color: #3b82f6; background-color: #eff6ff; }
-        .login-card { animation: fadeIn 0.5s ease; }
-        .hidden { display: none !important; }
+        .task-checkbox:checked + span { text-decoration: line-through; color: #9ca3af; }
+        .priority-p0 { background-color: #fee2e2; color: #dc2626; }
+        .priority-p1 { background-color: #fef3c7; color: #d97706; }
+        .priority-p2 { background-color: #dbeafe; color: #2563eb; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 0.5rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .sortable-ghost { opacity: 0.4; background: #e5e7eb; }
+        .sync-btn { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .syncing { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen">
-
-
-    <div id="login-page" class="min-h-screen flex items-center justify-center">
-        <div class="login-card bg-white rounded-2xl shadow-lg p-8 w-full max-w-md mx-4">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">AM</div>
-                <h1 class="text-2xl font-bold text-gray-900">客户经理任务管理</h1>
-                <p class="text-gray-500 mt-2">请选择您的身份</p>
-            </div>
-            <div id="am-buttons" class="space-y-3"></div>
-            <div id="login-upload-area" class="mt-6 hidden">
-                <div class="upload-area flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('login-file-input').click()">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                    </svg>
-                    <span class="text-sm text-gray-600">上传 Excel 文件</span>
-                    <input type="file" id="login-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleLoginFileUpload(this)">
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="container mx-auto p-4 max-w-6xl">
+        <!-- Login Page -->
+        <div id="loginPage" class="max-w-md mx-auto mt-20 bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">AM Task Manager</h1>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择或输入 AM 名称</label>
+                    <input type="text" id="amInput" list="amList" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="输入 AM 名称...">
+                    <datalist id="amList"></datalist>
                 </div>
+                <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">进入</button>
+                <button onclick="showClearConfirm()" class="w-full bg-red-100 text-red-600 py-2 rounded-lg hover:bg-red-200 transition text-sm">⚠️ 清空所有任务</button>
             </div>
-            <div id="clear-all-area" class="mt-4 hidden">
-                <button onclick="clearAllTasksWarning()" class="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm">
-                    ⚠️ 清空所有任务
-                </button>
-                <p class="text-xs text-red-400 text-center mt-2">此操作将删除所有 AM 的任务数据，不可恢复</p>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow p-4 mb-4">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">AM Task Manager</h1>
+                        <p class="text-sm text-gray-600">当前 AM: <span id="currentAM" class="font-semibold text-blue-600"></span></p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <select id="groupBy" onchange="renderTasks()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="task">按任务分组</option>
+                            <option value="seller">按卖家分组</option>
+                        </select>
+                        <button onclick="showAddModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">+ 添加任务</button>
+                        <button onclick="exportToExcel()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">📥 导出</button>
+                        <label class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm cursor-pointer">
+                            <input type="file" id="importFile" accept=".xlsx,.xls" onchange="importFromExcel(this)" class="hidden">
+</label>
+<button onclick="showSyncModal()" class="sync-btn bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 text-sm">☁️ 同步</button>
+<button onclick="logout()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm">退出</button>
+</div>
+</div>
+</div>
+            <!-- Progress -->
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-600">总体进度</span>
+                <span id="progressText" class="text-sm font-bold text-blue-600"></span>
             </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Tasks Container -->
+        <div id="tasksContainer" class="space-y-4"></div>
+    </div>
+</div>
+<!-- Add Task Modal -->
+<div id="addModal" class="modal">
+    <div class="modal-content">
+        <h2 class="text-xl font-bold mb-4">添加新任务</h2>
+        <div class="space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">任务名称</label>
+                <input type="text" id="newTaskName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+                <select id="newTaskPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="P0">P0 - 紧急</option>
+                    <option value="P1">P1 - 重要</option>
+                    <option value="P2" selected>P2 - 普通</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">卖家（多个用逗号分隔）</label>
+                <textarea id="newTaskSellers" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如：卖家A, 卖家B, 卖家C"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-2 mt-6">
+            <button onclick="addTask()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">添加</button>
+            <button onclick="closeModal('addModal')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">取消</button>
         </div>
     </div>
-
-    <div id="main-app" class="hidden">
-        <header class="bg-white shadow-sm sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between flex-wrap gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">AM</div>
-                        <div>
-                            <h1 class="text-xl font-bold text-gray-900">客户经理任务管理</h1>
-                            <p class="text-sm text-gray-500">当前用户: <span id="current-user-name"></span></p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-6">
-                        <div class="flex items-center gap-2">
-                            <div class="w-12 h-12 relative">
-                                <svg class="progress-ring w-12 h-12" viewBox="0 0 36 36">
-                                    <circle cx="18" cy="18" r="16" fill="none" stroke="#e2e8f0" stroke-width="3"/>
-                                    <circle id="progress-circle" cx="18" cy="18" r="16" fill="none" stroke="#3b82f6" stroke-width="3"
-                                        stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
-                                </svg>
-                                <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">0%</span>
-                            </div>
-                            <div class="text-sm">
-                                <div class="text-gray-500">完成率</div>
-                                <div id="stats-completed" class="font-semibold text-gray-900">0/0</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-blue-600" id="stats-pending">0</div>
-                            <div class="text-xs text-gray-500">待办任务</div>
-
-
-
-                            </div>
-                            <button onclick="logout()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">返回首页</button>
-                            </div>
-                            </div>
-                            </div>
-                            </header>
-
-
-        <main class="max-w-7xl mx-auto px-4 py-6">
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-            <div class="flex flex-wrap items-center gap-4">
-                <div class="flex-1 min-w-[300px]">
-                    <div class="upload-area flex items-center gap-2 px-4 py-2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg" onclick="document.getElementById('file-input').click()">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                        </svg>
-                        <span id="upload-text" class="text-sm text-gray-600">点击上传 Excel 文件</span>
-                        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(this)">
-                    </div>
-                </div>
-                <div class="w-32">
-                    <select id="sort-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="changeSortMode(this.value)">
-                        <option value="task">按任务分组</option>
-                        <option value="seller">按卖家分组</option>
-                    </select>
-                </div>
-                <div class="w-32">
-                    <select id="priority-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterByPriority(this.value)">
-                        <option value="">全部优先级</option>
-                        <option value="P0">紧急</option>
-                        <option value="P1">重要</option>
-                        <option value="P2">普通</option>
-                    </select>
-                </div>
-                <div class="w-40">
-                    <input type="text" id="search-input" placeholder="搜索任务或卖家..." 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        oninput="filterBySearch(this.value)">
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="exportData()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">导出 Excel</button>
-                    <button onclick="clearAllData()" class="px-3 py-2 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">清空</button>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm mb-6">
-            <div class="flex border-b">
-                <button id="tab-pending-btn" onclick="switchTab('pending')" class="tab-active px-6 py-3 font-medium text-sm flex items-center gap-2">
-                    <span>待办任务</span>
-                    <span id="badge-pending" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">0</span>
-                </button>
-                <button id="tab-completed-btn" onclick="switchTab('completed')" class="tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2">
-                    <span>已完成</span>
-                    <span id="badge-completed" class="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
-                </button>
-            </div>
-        </div>
-
-
-            <div id="task-container" class="space-y-4"></div>
-
-
-            <div id="empty-state" class="hidden text-center py-16">
-            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-1">暂无任务</h3>
-            <p class="text-gray-500">上传 Excel 文件开始使用</p>
-        </div>
-    </main>
 </div>
+<!-- Edit Task Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h2 class="text-xl font-bold mb-4">编辑任务</h2>
+        <input type="hidden" id="editTaskId">
+        <div class="space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">任务名称</label>
+                <input type="text" id="editTaskName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+                <select id="editTaskPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="P0">P0 - 紧急</option>
+                    <option value="P1">P1 - 重要</option>
+                    <option value="P2">P2 - 普通</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">卖家（多个用逗号分隔）</label>
+<textarea id="editTaskSellers" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+</div>
+</div>
+<div class="flex gap-2 mt-6">
+<button onclick="saveEditTask()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">保存</button>
+<button onclick="deleteTask()" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">删除</button>
+<button onclick="closeModal('editModal')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">取消</button>
+</div>
+</div>
+</div>
+    <!-- Add Seller Modal -->
+<div id="addSellerModal" class="modal">
+    <div class="modal-content">
+        <h2 class="text-xl font-bold mb-4">添加卖家</h2>
+        <input type="hidden" id="addSellerTaskId">
+        <div class="space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">卖家名称（多个用逗号分隔）</label>
+                <textarea id="addSellerNames" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如：新卖家A, 新卖家B"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-2 mt-6">
+            <button onclick="saveAddSellers()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">添加</button>
+            <button onclick="closeModal('addSellerModal')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">取消</button>
+        </div>
+    </div>
+</div>
+<!-- Sync Modal -->
+<div id="syncModal" class="modal">
+    <div class="modal-content">
+        <h2 class="text-xl font-bold mb-4">☁️ 云端同步</h2>
+        <p class="text-sm text-gray-600 mb-4">将当前 AM 的任务数据同步到云端，或从云端下载。</p>
+        <div class="space-y-3">
+            <button onclick="uploadToCloud()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
+                <span id="uploadIcon">⬆️</span>
+                <span id="uploadText">上传到云端</span>
+            </button>
+            <button onclick="downloadFromCloud()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <span id="downloadIcon">⬇️</span>
+                <span id="downloadText">从云端下载</span>
+            </button>
+            <div id="syncStatus" class="text-center text-sm hidden"></div>
+        </div>
+        <div class="flex gap-2 mt-6">
+            <button onclick="closeModal('syncModal')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">关闭</button>
+        </div>
+    </div>
+</div>
+<!-- Clear Confirm Modal -->
+<div id="clearModal" class="modal">
+    <div class="modal-content">
+        <h2 class="text-xl font-bold mb-4 text-red-600">⚠️ 危险操作</h2>
+        <p class="mb-4">确定要清空所有 AM 的任务数据吗？此操作不可恢复！</p>
+        <div class="flex gap-2">
+            <button onclick="clearAllData()" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">确定清空</button>
+            <button onclick="closeModal('clearModal')" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">取消</button>
+        </div>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+    // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwQmMXoM655YzIu-VASGJXaNFs6_cnfaw",
+            authDomain: "amtaskmanager.firebaseapp.com",
+            projectId: "amtaskmanager",
+            storageBucket: "amtaskmanager.firebasestorage.app",
+            messagingSenderId: "979314331618",
+            appId: "1:979314331618:web:41fd4edd61ce40a967b3bb"
+        };
 
+        // 初始化 Firebase
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("Firebase 初始化成功");
+        } catch (e) {
+            console.error("Firebase 初始化失败:", e);
+        }
 
-    <script>
-        var tasks = [];
-        var currentTab = 'pending';
-        var currentAM = '';
-        var currentPriority = '';
-        var searchQuery = '';
-        var sortMode = 'task';
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-        });
-        function checkLoginStatus() {
-            var savedAM = localStorage.getItem('current_am');
-            if (savedAM) {
-                currentAM = savedAM;
-                showMainApp();
-            } else {
-                showLoginPage();
+        let currentAM = '';
+        let tasks = [];
+        let editingTaskId = null;
+
+        // 页面加载时更新 AM 列表
+        window.onload = function() {
+            updateAMList();
+        };
+
+        function updateAMList() {
+            const allData = JSON.parse(localStorage.getItem('amTasks') || '{}');
+            const amList = document.getElementById('amList');
+            amList.innerHTML = '';
+            Object.keys(allData).forEach(am => {
+                const option = document.createElement('option');
+                option.value = am;
+                amList.appendChild(option);
+            });
+        }
+
+        function login() {
+            const amInput = document.getElementById('amInput').value.trim();
+            if (!amInput) {
+                alert('请输入 AM 名称');
+                return;
             }
+            currentAM = amInput;
+            document.getElementById('currentAM').textContent = currentAM;
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            loadTasks();
         }
-        function showLoginPage() {
-            document.getElementById('login-page').classList.remove('hidden');
-            document.getElementById('main-app').classList.add('hidden');
-            generateAMButtons();
-        }
-        function showMainApp() {
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('current-user-name').textContent = currentAM;
-            loadFromStorage();
-            render();
-        }
-        function generateAMButtons() {
-            loadFromStorage();
-            var ams = [];
-            var amSet = {};
-            for (var i = 0; i < tasks.length; i++) {
-                if (!amSet[tasks[i].am]) {
-                    amSet[tasks[i].am] = true;
-                    ams.push(tasks[i].am);
-                }
-            }
-            ams.sort();
-            var container = document.getElementById('am-buttons');
-            var uploadArea = document.getElementById('login-upload-area');
-            var clearArea = document.getElementById('clear-all-area');
-            
-            if (ams.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据，请先上传 Excel</p>';
-                uploadArea.classList.remove('hidden');
-                clearArea.classList.add('hidden');
-            } else {
-                var html = '';
-                for (var i = 0; i < ams.length; i++) {
-                    html += '<button onclick="loginAs(\'' + ams[i] + '\')" class="w-full py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition font-medium text-left flex items-center justify-between">';
-                    html += '<span>' + ams[i] + '</span>';
-                    html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
-                    html += '</button>';
-                }
-                container.innerHTML = html;
-                uploadArea.classList.remove('hidden');
-                clearArea.classList.remove('hidden');
-            }
-        }
-        function clearAllTasksWarning() {
-            if (confirm('⚠️ 警告：此操作将永久删除所有 AM 的所有任务数据！\n\n此操作不可恢复，确定要继续吗？')) {
-                if (confirm('再次确认：您确定要清空所有任务数据吗？')) {
-                    tasks = [];
-                    localStorage.removeItem('am_tasks');
-                    generateAMButtons();
-                    alert('所有任务已清空');
-                }
-            }
-        }
-        function handleLoginFileUpload(input) {
-            handleFileUpload(input, true);
-        }
-        function loginAs(am) {
-            currentAM = am;
-            localStorage.setItem('current_am', am);
-            showMainApp();
-        }
+
         function logout() {
             currentAM = '';
-            localStorage.removeItem('current_am');
-            showLoginPage();
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('amInput').value = '';
+            updateAMList();
         }
-        function handleFileUpload(input, isLoginPage) {
-            var file = input.files[0];
-            if (!file) return;
-            var textEl = isLoginPage ? null : document.getElementById('upload-text');
-            if (textEl) textEl.textContent = '正在读取: ' + file.name;
-            var reader = new FileReader();
 
-
-            reader.onload = function(e) {
-            try {
-            var data = new Uint8Array(e.target.result);
-            var workbook = XLSX.read(data, { type: 'array' });
-            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-
-                importTasksFromRows(jsonData);
-                alert('导入成功！');
-                
-                if (textEl) textEl.textContent = '点击上传 Excel 文件';
-                
-                if (isLoginPage) {
-                    generateAMButtons();
-                } else {
-                    render();
-                }
-            } catch (err) {
-                alert('导入失败：' + err.message);
-                if (textEl) textEl.textContent = '点击上传 Excel 文件';
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-    function importTasksFromRows(rows) {
-        var now = Date.now();
-        var existingKeys = {};
-        
-        for (var i = 0; i < tasks.length; i++) {
-            var key = tasks[i].seller + '|' + tasks[i].am + '|' + tasks[i].taskName;
-            existingKeys[key] = true;
+        function loadTasks() {
+            const allData = JSON.parse(localStorage.getItem('amTasks') || '{}');
+            tasks = allData[currentAM] || [];
+            renderTasks();
         }
-        
-        for (var i = 1; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || row.length < 3) continue;
-            
-            var seller = String(row[0] || '').trim();
-            var am = String(row[1] || '').trim();
-            var taskName = String(row[2] || '').trim();
-            
-            if (seller && am && taskName) {
-                var key = seller + '|' + am + '|' + taskName;
-                if (!existingKeys[key]) {
-                    tasks.push({
-                        id: 'task_' + now + '_' + i,
-                        seller: seller,
-                        am: am,
-                        taskName: taskName,
-                        priority: 'P2',
-                        completed: false,
-                        completedAt: null,
-                        createdAt: now,
-                        note: ''
-                    });
-                    existingKeys[key] = true;
-                }
-            }
-        }
-        
-        saveToStorage();
-    }
-    function changeSortMode(mode) {
-        sortMode = mode;
-        render();
-    }
-    function filterByPriority(priority) {
-        currentPriority = priority;
-        render();
-    }
-    function filterBySearch(query) {
-        searchQuery = query.toLowerCase();
-        render();
-    }
-    function toggleTask(id) {
-        for (var i = 0; i < tasks.length; i++) {
-            if (tasks[i].id === id) {
-                tasks[i].completed = !tasks[i].completed;
-                tasks[i].completedAt = tasks[i].completed ? Date.now() : null;
-                break;
-            }
-        }
-        saveToStorage();
-        render();
-    }
-    function updatePriority(id, priority) {
-        for (var i = 0; i < tasks.length; i++) {
-            if (tasks[i].id === id) {
-                tasks[i].priority = priority;
-                break;
-            }
-        }
-        saveToStorage();
-        render();
-    }
-    function updateNote(id, note) {
-        for (var i = 0; i < tasks.length; i++) {
-            if (tasks[i].id === id) {
-                tasks[i].note = note;
-                break;
-            }
-        }
-        saveToStorage();
-    }
-    function switchTab(tab) {
-        currentTab = tab;
-        
-        var pendingBtn = document.getElementById('tab-pending-btn');
 
-
-
-        var completedBtn = document.getElementById('tab-completed-btn');
-
-
-
-        if (tab === 'pending') {
-            pendingBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
-            completedBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
-        } else {
-            pendingBtn.className = 'tab-inactive px-6 py-3 font-medium text-sm flex items-center gap-2';
-            completedBtn.className = 'tab-active px-6 py-3 font-medium text-sm flex items-center gap-2';
+        function saveTasks() {
+            const allData = JSON.parse(localStorage.getItem('amTasks') || '{}');
+            allData[currentAM] = tasks;
+            localStorage.setItem('amTasks', JSON.stringify(allData));
+            renderTasks();
         }
-        
-        render();
-    }
-    function render() {
-        updateStats();
-        
-        var filtered = [];
-        for (var i = 0; i < tasks.length; i++) {
-            var t = tasks[i];
-            if (t.am !== currentAM) continue;
-            if (currentPriority && t.priority !== currentPriority) continue;
-            if (searchQuery && t.seller.toLowerCase().indexOf(searchQuery) === -1 && t.taskName.toLowerCase().indexOf(searchQuery) === -1) continue;
-            if (currentTab === 'pending' && t.completed) continue;
-            if (currentTab === 'completed' && !t.completed) continue;
-            filtered.push(t);
-        }
-        var container = document.getElementById('task-container');
-        var emptyState = document.getElementById('empty-state');
-        if (filtered.length === 0) {
+
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            const groupBy = document.getElementById('groupBy').value;
             container.innerHTML = '';
-            emptyState.classList.remove('hidden');
+
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">暂无任务，点击"添加任务"开始</div>';
+                updateProgress();
+                return;
+            }
+
+            if (groupBy === 'task') {
+                // 按任务分组
+                tasks.forEach(task => {
+                    const completedCount = task.sellers.filter(s => s.completed).length;
+                    const card = createTaskCard(task, completedCount);
+                    container.appendChild(card);
+                });
+            } else {
+                // 按卖家分组
+                const sellerMap = {};
+                tasks.forEach(task => {
+task.sellers.forEach(seller => {
+if (!sellerMap[seller.name]) {
+sellerMap[seller.name] = [];
+}
+sellerMap[seller.name].push({
+taskName: task.name,
+taskId: task.id,
+completed: seller.completed,
+priority: task.priority
+});
+});
+});
+                Object.keys(sellerMap).sort().forEach(sellerName => {
+                const sellerTasks = sellerMap[sellerName];
+                const completedCount = sellerTasks.filter(t => t.completed).length;
+                const card = createSellerCard(sellerName, sellerTasks, completedCount);
+                container.appendChild(card);
+            });
+        }
+        updateProgress();
+    }
+    function createTaskCard(task, completedCount) {
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-lg shadow p-4';
+        
+        const priorityClass = `priority-${task.priority.toLowerCase()}`;
+        
+        let sellersHtml = task.sellers.map((seller, index) => `
+            <div class="flex items-center gap-2 py-1">
+                <input type="checkbox" class="task-checkbox w-4 h-4" 
+                       ${seller.completed ? 'checked' : ''} 
+                       onchange="toggleSeller('${task.id}', '${seller.name}')">
+                <span class="${seller.completed ? 'line-through text-gray-400' : ''}">${seller.name}</span>
+            </div>
+        `).join('');
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-bold ${priorityClass}">${task.priority}</span>
+                    <h3 class="font-bold text-lg cursor-pointer hover:text-blue-600" onclick="openEditModal('${task.id}')">${task.name}</h3>
+                </div>
+                <div class="text-sm text-gray-500">${completedCount}/${task.sellers.length}</div>
+            </div>
+            <div class="space-y-1 mb-3">
+                ${sellersHtml}
+            </div>
+            <button onclick="openAddSellerModal('${task.id}')" class="text-sm text-blue-600 hover:text-blue-800">+ 添加卖家</button>
+        `;
+        
+        return div;
+    }
+    function createSellerCard(sellerName, sellerTasks, completedCount) {
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-lg shadow p-4';
+        
+        let tasksHtml = sellerTasks.map(task => {
+            const priorityClass = `priority-${task.priority.toLowerCase()}`;
+            return `
+                <div class="flex items-center gap-2 py-1">
+                    <input type="checkbox" class="task-checkbox w-4 h-4" 
+                           ${task.completed ? 'checked' : ''} 
+                           onchange="toggleSellerByName('${task.taskId}', '${sellerName}')">
+                    <span class="px-1.5 py-0.5 rounded text-xs ${priorityClass}">${task.priority}</span>
+                    <span class="${task.completed ? 'line-through text-gray-400' : ''}">${task.taskName}</span>
+                </div>
+            `;
+        }).join('');
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <h3 class="font-bold text-lg">${sellerName}</h3>
+                <div class="text-sm text-gray-500">${completedCount}/${sellerTasks.length}</div>
+            </div>
+            <div class="space-y-1">
+                ${tasksHtml}
+            </div>
+            `;
+        return div;
+    }
+    function updateProgress() {
+        let totalSellers = 0;
+        let completedSellers = 0;
+        
+        tasks.forEach(task => {
+            task.sellers.forEach(seller => {
+                totalSellers++;
+                if (seller.completed) completedSellers++;
+            });
+        });
+        
+        const percentage = totalSellers > 0 ? Math.round((completedSellers / totalSellers) * 100) : 0;
+        
+        document.getElementById('progressText').textContent = `${completedSellers}/${totalSellers} (${percentage}%)`;
+        document.getElementById('progressBar').style.width = `${percentage}%`;
+    }
+    function toggleSeller(taskId, sellerName) {
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+            const seller = task.sellers.find(s => s.name === sellerName);
+            if (seller) {
+                seller.completed = !seller.completed;
+                saveTasks();
+            }
+        }
+    }
+    function toggleSellerByName(taskId, sellerName) {
+        toggleSeller(taskId, sellerName);
+    }
+    function showAddModal() {
+        document.getElementById('newTaskName').value = '';
+        document.getElementById('newTaskPriority').value = 'P2';
+        document.getElementById('newTaskSellers').value = '';
+        document.getElementById('addModal').classList.add('active');
+    }
+    function addTask() {
+        const name = document.getElementById('newTaskName').value.trim();
+        const priority = document.getElementById('newTaskPriority').value;
+        const sellersText = document.getElementById('newTaskSellers').value.trim();
+        
+        if (!name) {
+            alert('请输入任务名称');
             return;
         }
-        emptyState.classList.add('hidden');
-        var html = '';
-        var grouped = {};
         
-        if (sortMode === 'task') {
-            for (var i = 0; i < filtered.length; i++) {
-                var t = filtered[i];
-                var key = t.taskName;
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(t);
-            }
-        } else {
-            for (var i = 0; i < filtered.length; i++) {
-                var t = filtered[i];
-                var key = t.seller;
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(t);
-            }
+        if (!sellersText) {
+            alert('请输入至少一个卖家');
+            return;
         }
-        for (var key in grouped) {
-            var groupTasks = grouped[key];
-            var allTasksInGroup = [];
-            
-            if (sortMode === 'task') {
-                for (var i = 0; i < tasks.length; i++) {
-                    if (tasks[i].am === currentAM && tasks[i].taskName === key) {
-                        allTasksInGroup.push(tasks[i]);
-                    }
-                }
-            } else {
-                for (var i = 0; i < tasks.length; i++) {
-                    if (tasks[i].am === currentAM && tasks[i].seller === key) {
-                        allTasksInGroup.push(tasks[i]);
-                    }
-                }
-            }
-            
-            var completedCount = 0;
-            var p0Count = 0;
-            
-            for (var i = 0; i < allTasksInGroup.length; i++) {
-                if (allTasksInGroup[i].completed) completedCount++;
-                if (allTasksInGroup[i].priority === 'P0') p0Count++;
-            }
-            
-            var progress = Math.round((completedCount / allTasksInGroup.length) * 100);
-            
-            html += '<div class="bg-white rounded-xl shadow-sm p-5 task-card fade-in">';
-            html += '<div class="flex items-center justify-between mb-4">';
-            html += '<div class="flex items-center gap-3">';
-            html += '<h3 class="text-lg font-semibold text-gray-900">' + key + '</h3>';
-            if (p0Count > 0) {
-
-
-                html += '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">' + p0Count + ' 紧急</span>';
-                }
-                html += '</div>';
-                html += '<div class="flex items-center gap-2">';
-                html += '<span class="text-sm text-gray-500 font-medium">' + completedCount + '/' + allTasksInGroup.length + '</span>';
-                html += '<div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">';
-                html += '<div class="h-full bg-blue-500 rounded-full transition-all" style="width: ' + progress + '%"></div>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div>';
-                html += '<div class="space-y-2">';
-
-
-            for (var i = 0; i < groupTasks.length; i++) {
-                var t = groupTasks[i];
-                html += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">';
-                html += '<div class="checkbox-wrapper" onclick="toggleTask(\'' + t.id + '\')">';
-                html += '<div class="custom-checkbox ' + (t.completed ? 'checked' : '') + '"></div>';
-                html += '</div>';
-                if (sortMode === 'task') {
-                    html += '<div class="w-24 font-medium text-gray-900">' + t.seller + '</div>';
-                } else {
-                    html += '<div class="w-32 font-medium text-gray-900">' + t.taskName + '</div>';
-                }
-                html += '<input type="text" value="' + t.note + '" placeholder="添加备注..." ';
-                html += 'onchange="updateNote(\'' + t.id + '\', this.value)" ';
-                html += 'class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-400"' + (currentTab === 'completed' ? ' disabled' : '') + '>';
-                if (currentTab === 'pending') {
-                    html += '<select onchange="updatePriority(\'' + t.id + '\', this.value)" class="w-16 text-xs px-2 py-2 rounded priority-' + t.priority.toLowerCase() + ' focus:outline-none cursor-pointer">';
-                    html += '<option value="P0" ' + (t.priority === 'P0' ? 'selected' : '') + '>紧急</option>';
-                    html += '<option value="P1" ' + (t.priority === 'P1' ? 'selected' : '') + '>重要</option>';
-                    html += '<option value="P2" ' + (t.priority === 'P2' ? 'selected' : '') + '>普通</option>';
-                    html += '</select>';
-                } else {
-                    var priorityText = t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通');
-                    html += '<span class="w-16 text-xs px-2 py-1 rounded text-center priority-' + t.priority.toLowerCase() + '">' + priorityText + '</span>';
-                }
-                html += '</div>';
-            }
-            
-            html += '</div>';
-            html += '</div>';
-        }
-        container.innerHTML = html;
+        
+        const sellers = sellersText.split(/[,，]/).map(s => s.trim()).filter(s => s).map(s => ({
+            name: s,
+            completed: false
+        }));
+        
+        const newTask = {
+            id: Date.now().toString(),
+            name: name,
+            priority: priority,
+            sellers: sellers,
+            createdAt: new Date().toISOString()
+        };
+        
+        tasks.push(newTask);
+        saveTasks();
+        closeModal('addModal');
     }
-    function updateStats() {
-        var amTasks = [];
-        for (var i = 0; i < tasks.length; i++) {
-            if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
+    function openEditModal(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        editingTaskId = taskId;
+        document.getElementById('editTaskId').value = taskId;
+        document.getElementById('editTaskName').value = task.name;
+        document.getElementById('editTaskPriority').value = task.priority;
+        document.getElementById('editTaskSellers').value = task.sellers.map(s => s.name).join(', ');
+        document.getElementById('editModal').classList.add('active');
+    }
+    function saveEditTask() {
+        const task = tasks.find(t => t.id === editingTaskId);
+        if (!task) return;
+        
+        const name = document.getElementById('editTaskName').value.trim();
+        const priority = document.getElementById('editTaskPriority').value;
+        const sellersText = document.getElementById('editTaskSellers').value.trim();
+        
+        if (!name) {
+            alert('请输入任务名称');
+            return;
         }
         
-        var total = amTasks.length;
-        var completed = 0;
-        for (var i = 0; i < amTasks.length; i++) {
-            if (amTasks[i].completed) completed++;
-        }
-        var pending = total - completed;
-        var rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-        document.getElementById('stats-pending').textContent = pending;
-        document.getElementById('stats-completed').textContent = completed + '/' + total;
-        document.getElementById('progress-text').textContent = rate + '%';
-        document.getElementById('progress-circle').style.strokeDashoffset = 100 - rate;
-
-
-
-        document.getElementById('badge-pending').textContent = pending;
-        document.getElementById('badge-completed').textContent = completed;
-        }
-
-
-        function exportData() {
-        var amTasks = [];
-        for (var i = 0; i < tasks.length; i++) {
-            if (tasks[i].am === currentAM) amTasks.push(tasks[i]);
+        // 保留原有的完成状态
+        const sellerNames = sellersText.split(/[,，]/).map(s => s.trim()).filter(s => s);
+        const newSellers = sellerNames.map(name => {
+const existing = task.sellers.find(s => s.name === name);
+return {
+name: name,
+completed: existing ? existing.completed : false
+};
+});
+        task.name = name;
+        task.priority = priority;
+        task.sellers = newSellers;
+        
+        saveTasks();
+        closeModal('editModal');
+        editingTaskId = null;
+    }
+    function deleteTask() {
+        if (!confirm('确定要删除这个任务吗？')) return;
+        
+        tasks = tasks.filter(t => t.id !== editingTaskId);
+        saveTasks();
+        closeModal('editModal');
+        editingTaskId = null;
+    }
+    function openAddSellerModal(taskId) {
+        document.getElementById('addSellerTaskId').value = taskId;
+        document.getElementById('addSellerNames').value = '';
+        document.getElementById('addSellerModal').classList.add('active');
+    }
+    function saveAddSellers() {
+        const taskId = document.getElementById('addSellerTaskId').value;
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        const sellersText = document.getElementById('addSellerNames').value.trim();
+        if (!sellersText) {
+            alert('请输入卖家名称');
+            return;
         }
         
-        if (amTasks.length === 0) {
+        const newSellers = sellersText.split(/[,，]/).map(s => s.trim()).filter(s => s);
+        newSellers.forEach(name => {
+            if (!task.sellers.find(s => s.name === name)) {
+                task.sellers.push({ name: name, completed: false });
+            }
+        });
+        
+        saveTasks();
+        closeModal('addSellerModal');
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+    function showClearConfirm() {
+        document.getElementById('clearModal').classList.add('active');
+    }
+    function clearAllData() {
+        localStorage.removeItem('amTasks');
+        updateAMList();
+        closeModal('clearModal');
+        alert('所有数据已清空');
+    }
+    // ========== 云端同步功能 ==========
+    function showSyncModal() {
+        document.getElementById('syncStatus').classList.add('hidden');
+        document.getElementById('syncModal').classList.add('active');
+    }
+    async function uploadToCloud() {
+        if (!db) {
+            alert('Firebase 未初始化，请刷新页面重试');
+            return;
+        }
+        const uploadBtn = document.querySelector('button[onclick="uploadToCloud()"]');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const uploadText = document.getElementById('uploadText');
+        const statusDiv = document.getElementById('syncStatus');
+        uploadBtn.disabled = true;
+        uploadIcon.classList.add('syncing');
+        uploadText.textContent = '上传中...';
+        statusDiv.classList.remove('hidden');
+        statusDiv.textContent = '正在上传到云端...';
+        statusDiv.className = 'text-center text-sm text-blue-600';
+        try {
+            // 准备数据
+            const dataToUpload = {
+                amName: currentAM,
+                tasks: tasks,
+                updatedAt: new Date().toISOString(),
+                device: navigator.userAgent
+            };
+            // 上传到 Firestore
+            await db.collection('tasks').doc(currentAM).set(dataToUpload);
+            statusDiv.textContent = '✅ 上传成功！';
+            statusDiv.className = 'text-center text-sm text-green-600';
+            uploadText.textContent = '上传成功';
+            setTimeout(() => {
+uploadBtn.disabled = false;
+uploadIcon.classList.remove('syncing');
+uploadText.textContent = '上传到云端';
+}, 2000);
+            } catch (error) {
+            console.error('上传失败:', error);
+            statusDiv.textContent = '❌ 上传失败: ' + error.message;
+            statusDiv.className = 'text-center text-sm text-red-600';
+            uploadBtn.disabled = false;
+            uploadIcon.classList.remove('syncing');
+            uploadText.textContent = '上传到云端';
+        }
+    }
+    async function downloadFromCloud() {
+        if (!db) {
+            alert('Firebase 未初始化，请刷新页面重试');
+            return;
+        }
+        const downloadBtn = document.querySelector('button[onclick="downloadFromCloud()"]');
+        const downloadIcon = document.getElementById('downloadIcon');
+        const downloadText = document.getElementById('downloadText');
+        const statusDiv = document.getElementById('syncStatus');
+        downloadBtn.disabled = true;
+        downloadIcon.classList.add('syncing');
+        downloadText.textContent = '下载中...';
+        statusDiv.classList.remove('hidden');
+        statusDiv.textContent = '正在从云端下载...';
+        statusDiv.className = 'text-center text-sm text-blue-600';
+        try {
+            // 从 Firestore 下载
+            const doc = await db.collection('tasks').doc(currentAM).get();
+            if (!doc.exists) {
+                statusDiv.textContent = '⚠️ 云端没有此 AM 的数据';
+                statusDiv.className = 'text-center text-sm text-yellow-600';
+                downloadBtn.disabled = false;
+                downloadIcon.classList.remove('syncing');
+                downloadText.textContent = '从云端下载';
+                return;
+            }
+            const data = doc.data();
+            if (confirm(`找到 ${data.amName} 的云端数据，更新于 ${new Date(data.updatedAt).toLocaleString()}。\n\n确定要覆盖本地数据吗？`)) {
+                tasks = data.tasks || [];
+                saveTasks();
+                statusDiv.textContent = '✅ 下载成功！数据已同步';
+                statusDiv.className = 'text-center text-sm text-green-600';
+                downloadText.textContent = '下载成功';
+            } else {
+                statusDiv.textContent = '已取消';
+                statusDiv.className = 'text-center text-sm text-gray-600';
+            }
+            setTimeout(() => {
+                downloadBtn.disabled = false;
+                downloadIcon.classList.remove('syncing');
+                downloadText.textContent = '从云端下载';
+            }, 2000);
+        } catch (error) {
+            console.error('下载失败:', error);
+            statusDiv.textContent = '❌ 下载失败: ' + error.message;
+            statusDiv.className = 'text-center text-sm text-red-600';
+            downloadBtn.disabled = false;
+            downloadIcon.classList.remove('syncing');
+            downloadText.textContent = '从云端下载';
+        }
+    }
+    // ========== Excel 导入导出 ==========
+    function exportToExcel() {
+        if (tasks.length === 0) {
             alert('没有数据可导出');
             return;
         }
-        var data = [];
-        for (var i = 0; i < amTasks.length; i++) {
-            var t = amTasks[i];
-            data.push({
-                '卖家': t.seller,
-                'AM': t.am,
-                '任务': t.taskName,
-                '优先级': t.priority === 'P0' ? '紧急' : (t.priority === 'P1' ? '重要' : '普通'),
-                '完成状态': t.completed ? '已完成' : '待办',
-                '完成时间': t.completedAt ? new Date(t.completedAt).toLocaleString('zh-CN') : '-',
-                '备注': t.note
+        const data = [];
+        tasks.forEach(task => {
+            task.sellers.forEach(seller => {
+                data.push({
+                    'AM': currentAM,
+                    '任务名称': task.name,
+                    '优先级': task.priority,
+                    '卖家': seller.name,
+                    '状态': seller.completed ? '已完成' : '未完成'
+                });
             });
-        }
-        var ws = XLSX.utils.json_to_sheet(data);
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '任务列表');
-        XLSX.writeFile(wb, 'AM任务列表_' + currentAM + '_' + new Date().toLocaleDateString('zh-CN') + '.xlsx');
-    }
-    function clearAllData() {
-        if (confirm('确定要清空 ' + currentAM + ' 的所有数据吗？此操作不可恢复。')) {
-            var newTasks = [];
-            for (var i = 0; i < tasks.length; i++) {
-                if (tasks[i].am !== currentAM) newTasks.push(tasks[i]);
+        });
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Tasks');
+
+        const date = new Date().toISOString().split('T')[0];
+XLSX.writeFile(wb, AM_Tasks_${currentAM}_${date}.xlsx);
+}
+    function importFromExcel(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+                if (jsonData.length === 0) {
+                    alert('文件中没有数据');
+                    return;
+                }
+                // 解析导入的数据
+                const importedTasks = {};
+                jsonData.forEach(row => {
+                    const taskName = row['任务名称'] || row['Task'] || row['task'];
+                    const sellerName = row['卖家'] || row['Seller'] || row['seller'];
+                    const priority = row['优先级'] || row['Priority'] || row['priority'] || 'P2';
+                    const status = row['状态'] || row['Status'] || row['status'];
+                    if (!taskName || !sellerName) return;
+                    if (!importedTasks[taskName]) {
+                        importedTasks[taskName] = {
+                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                            name: taskName,
+                            priority: ['P0', 'P1', 'P2'].includes(priority) ? priority : 'P2',
+                            sellers: [],
+                            createdAt: new Date().toISOString()
+                        };
+                    }
+                    importedTasks[taskName].sellers.push({
+                        name: sellerName,
+                        completed: status === '已完成' || status === 'Done' || status === true
+                    });
+                });
+                // 合并到现有任务
+                Object.values(importedTasks).forEach(newTask => {
+                    const existingTask = tasks.find(t => t.name === newTask.name);
+                    if (existingTask) {
+                        // 合并卖家
+                        newTask.sellers.forEach(newSeller => {
+                            if (!existingTask.sellers.find(s => s.name === newSeller.name)) {
+                                existingTask.sellers.push(newSeller);
+                            }
+                        });
+                    } else {
+                        tasks.push(newTask);
+                    }
+                });
+                saveTasks();
+                alert(`成功导入 ${Object.keys(importedTasks).length} 个任务`);
+                
+            } catch (err) {
+                console.error(err);
+                alert('导入失败：' + err.message);
             }
-            tasks = newTasks;
-            saveToStorage();
-            render();
-        }
-    }
-    function saveToStorage() {
-        localStorage.setItem('am_tasks', JSON.stringify(tasks));
-    }
-    function loadFromStorage() {
-        var stored = localStorage.getItem('am_tasks');
-        if (stored) {
-            tasks = JSON.parse(stored);
-        }
+        };
+        reader.readAsArrayBuffer(file);
+        input.value = '';
     }
 </script>
-
-
     </body>
     </html>
